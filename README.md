@@ -8,12 +8,11 @@ specification.
 ### Currently Supported Features
 
 -   DID URL
-    -   Parsing (only absolute URLs at this time)
+    -   Parsing absolute URLs, and mapping relative URLs from absolute ones
     -   Generation from pre-populated struct
 
 ### Planned Features
 
--   DID URL: compute absolute URL, using relative URL
 -   Complete implementation of the [did-method-web specification](https://w3c-ccg.github.io/did-method-web/)
 -   Verification Methods
 -   Consumption of JSON and JSON-LD
