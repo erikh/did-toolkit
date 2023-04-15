@@ -102,21 +102,32 @@ impl URL {
         match s.strip_prefix("did:") {
             Some(s) => match s.split_once(":") {
                 Some((method_name, right)) => match right.split_once("/") {
-                    Some((method_id, path)) => Self::match_path(method_name, method_id, path),
+                    Some((method_id, path)) => Self::match_path(
+                        method_name.as_bytes(),
+                        method_id.as_bytes(),
+                        path.as_bytes(),
+                    ),
                     None => match right.split_once("?") {
-                        Some((method_id, query)) => {
-                            Self::match_query(method_name, method_id, None, query)
-                        }
+                        Some((method_id, query)) => Self::match_query(
+                            method_name.as_bytes(),
+                            method_id.as_bytes(),
+                            None,
+                            query.as_bytes(),
+                        ),
                         None => match right.split_once("#") {
-                            Some((method_id, fragment)) => {
-                                Self::match_fragment(method_name, method_id, None, None, fragment)
-                            }
+                            Some((method_id, fragment)) => Self::match_fragment(
+                                method_name.as_bytes(),
+                                method_id.as_bytes(),
+                                None,
+                                None,
+                                fragment.as_bytes(),
+                            ),
                             None => {
-                                validate_method_name(method_name)?;
+                                validate_method_name(method_name.as_bytes())?;
 
                                 Ok(URL {
-                                    name: url_decoded(method_name),
-                                    method: url_decoded(right),
+                                    name: url_decoded(method_name.as_bytes()),
+                                    method: url_decoded(right.as_bytes()),
                                     ..Default::default()
                                 })
                             }
@@ -129,14 +140,42 @@ impl URL {
         }
     }
 
+    pub fn join(&self, s: &str) -> Result<Self, anyhow::Error> {
+        if s.len() == 0 {
+            return Err(anyhow!("relative DID URL is empty"));
+        }
+
+        match s.chars().next().unwrap() {
+            '/' => Self::match_path(&self.name, &self.method, &s.as_bytes()[1..]),
+            '?' => Self::match_query(&self.name, &self.method, None, &s.as_bytes()[1..]),
+            '#' => Self::match_fragment(&self.name, &self.method, None, None, &s.as_bytes()[1..]),
+            _ => Err(anyhow!("DID URL is not relative or is malformed")),
+        }
+    }
+
     #[inline]
-    fn match_path(method_name: &str, method_id: &str, left: &str) -> Result<Self, anyhow::Error> {
-        match left.split_once("?") {
-            Some((path, query)) => Self::match_query(method_name, method_id, Some(path), query),
-            None => match left.split_once("#") {
-                Some((path, fragment)) => {
-                    Self::match_fragment(method_name, method_id, Some(path), None, fragment)
-                }
+    fn match_path(
+        method_name: &[u8],
+        method_id: &[u8],
+        left: &[u8],
+    ) -> Result<Self, anyhow::Error> {
+        let item = String::from_utf8_lossy(left);
+
+        match item.split_once("?") {
+            Some((path, query)) => Self::match_query(
+                method_name,
+                method_id,
+                Some(path.as_bytes()),
+                query.as_bytes(),
+            ),
+            None => match item.split_once("#") {
+                Some((path, fragment)) => Self::match_fragment(
+                    method_name,
+                    method_id,
+                    Some(path.as_bytes()),
+                    None,
+                    fragment.as_bytes(),
+                ),
                 None => {
                     validate_method_name(method_name)?;
 
@@ -153,11 +192,11 @@ impl URL {
 
     #[inline]
     fn match_fragment(
-        method_name: &str,
-        method_id: &str,
-        path: Option<&str>,
-        query: Option<&str>,
-        fragment: &str,
+        method_name: &[u8],
+        method_id: &[u8],
+        path: Option<&[u8]>,
+        query: Option<&[u8]>,
+        fragment: &[u8],
     ) -> Result<Self, anyhow::Error> {
         validate_method_name(method_name)?;
 
@@ -178,15 +217,21 @@ impl URL {
 
     #[inline]
     fn match_query(
-        method_name: &str,
-        method_id: &str,
-        path: Option<&str>,
-        query: &str,
+        method_name: &[u8],
+        method_id: &[u8],
+        path: Option<&[u8]>,
+        query: &[u8],
     ) -> Result<Self, anyhow::Error> {
-        match query.split_once("#") {
-            Some((query, fragment)) => {
-                Self::match_fragment(method_name, method_id, path, Some(query), fragment)
-            }
+        let item = String::from_utf8_lossy(query);
+
+        match item.split_once("#") {
+            Some((query, fragment)) => Self::match_fragment(
+                method_name,
+                method_id,
+                path,
+                Some(query.as_bytes()),
+                fragment.as_bytes(),
+            ),
             None => {
                 validate_method_name(method_name)?;
 
@@ -206,21 +251,26 @@ impl URL {
     #[inline]
     fn match_fixed_query_params(
         &mut self,
-        left: &str,
-        right: &str,
+        left: &[u8],
+        right: &[u8],
         extra_query: &mut BTreeMap<Vec<u8>, Vec<u8>>,
     ) -> Result<(), anyhow::Error> {
-        match left {
-            "service" => self.service = Some(right.to_string()),
+        let item = String::from_utf8(left.to_vec())?;
+
+        match item.as_str() {
+            "service" => self.service = Some(String::from_utf8(right.to_vec())?),
             "relativeRef" => {
                 self.relative_ref = Some(url_decoded(right));
             }
-            "versionId" => self.version_id = Some(right.to_string()),
+            "versionId" => self.version_id = Some(String::from_utf8(right.to_vec())?),
             "versionTime" => {
-                let dt = PrimitiveDateTime::parse(right, VERSION_TIME_FORMAT)?;
+                let dt = PrimitiveDateTime::parse(
+                    &String::from_utf8(right.to_vec())?,
+                    VERSION_TIME_FORMAT,
+                )?;
                 self.version_time = Some(dt.assume_utc());
             }
-            "hl" => self.hash_link = Some(right.to_string()),
+            "hl" => self.hash_link = Some(String::from_utf8(right.to_vec())?),
             _ => {
                 extra_query.insert(url_decoded(left), url_decoded(right));
             }
@@ -230,26 +280,36 @@ impl URL {
     }
 
     #[inline]
-    fn parse_query(&mut self, query: &str) -> Result<(), anyhow::Error> {
+    fn parse_query(&mut self, query: &[u8]) -> Result<(), anyhow::Error> {
         let mut extra_query = BTreeMap::new();
 
-        if !query.contains("&") {
-            match query.split_once("=") {
+        let item = String::from_utf8(query.to_vec())?;
+
+        if !item.contains("&") {
+            match item.split_once("=") {
                 Some((left, right)) => {
-                    self.match_fixed_query_params(left, right, &mut extra_query)?;
+                    self.match_fixed_query_params(
+                        left.as_bytes(),
+                        right.as_bytes(),
+                        &mut extra_query,
+                    )?;
                 }
                 None => {
                     extra_query.insert(url_decoded(query), Default::default());
                 }
             }
         } else {
-            for part in query.split("&") {
+            for part in item.split("&") {
                 match part.split_once("=") {
                     Some((left, right)) => {
-                        self.match_fixed_query_params(left, right, &mut extra_query)?;
+                        self.match_fixed_query_params(
+                            left.as_bytes(),
+                            right.as_bytes(),
+                            &mut extra_query,
+                        )?;
                     }
                     None => {
-                        extra_query.insert(url_decoded(part), Default::default());
+                        extra_query.insert(url_decoded(part.as_bytes()), Default::default());
                     }
                 }
             }
@@ -264,6 +324,41 @@ impl URL {
 }
 
 mod tests {
+    #[test]
+    fn test_join() {
+        use super::URL;
+
+        let url = URL {
+            name: "abcdef".into(),
+            method: "123456".into(),
+            ..Default::default()
+        };
+
+        assert!(url.join("").is_err());
+
+        assert_eq!(
+            url.join("#fragment").unwrap().to_string(),
+            "did:abcdef:123456#fragment"
+        );
+
+        assert_eq!(
+            url.join("?service=frobnik").unwrap().to_string(),
+            "did:abcdef:123456?service=frobnik"
+        );
+
+        assert_eq!(
+            url.join("?service=frobnik#fragment").unwrap().to_string(),
+            "did:abcdef:123456?service=frobnik#fragment"
+        );
+
+        assert_eq!(
+            url.join("/path?service=frobnik#fragment")
+                .unwrap()
+                .to_string(),
+            "did:abcdef:123456/path?service=frobnik#fragment"
+        );
+    }
+
     #[test]
     fn test_to_string() {
         use super::URL;
