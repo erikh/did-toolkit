@@ -4,7 +4,7 @@ use time::{
     format_description::FormatItem, macros::format_description, OffsetDateTime, PrimitiveDateTime,
 };
 
-use crate::string::{url_decoded, url_encoded};
+use crate::string::{url_decoded, url_encoded, validate_method_name};
 
 static VERSION_TIME_FORMAT: &'static [FormatItem<'static>] =
     format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]");
@@ -111,11 +111,15 @@ impl URL {
                             Some((method_id, fragment)) => {
                                 Self::match_fragment(method_name, method_id, None, None, fragment)
                             }
-                            None => Ok(URL {
-                                name: url_decoded(method_name),
-                                method: url_decoded(right),
-                                ..Default::default()
-                            }),
+                            None => {
+                                validate_method_name(method_name)?;
+
+                                Ok(URL {
+                                    name: url_decoded(method_name),
+                                    method: url_decoded(right),
+                                    ..Default::default()
+                                })
+                            }
                         },
                     },
                 },
@@ -133,12 +137,16 @@ impl URL {
                 Some((path, fragment)) => {
                     Self::match_fragment(method_name, method_id, Some(path), None, fragment)
                 }
-                None => Ok(URL {
-                    name: url_decoded(method_name),
-                    method: url_decoded(method_id),
-                    path: Some(url_decoded(left)),
-                    ..Default::default()
-                }),
+                None => {
+                    validate_method_name(method_name)?;
+
+                    Ok(URL {
+                        name: url_decoded(method_name),
+                        method: url_decoded(method_id),
+                        path: Some(url_decoded(left)),
+                        ..Default::default()
+                    })
+                }
             },
         }
     }
@@ -151,6 +159,8 @@ impl URL {
         query: Option<&str>,
         fragment: &str,
     ) -> Result<Self, anyhow::Error> {
+        validate_method_name(method_name)?;
+
         let mut url = URL {
             name: url_decoded(method_name),
             method: url_decoded(method_id),
@@ -178,6 +188,8 @@ impl URL {
                 Self::match_fragment(method_name, method_id, path, Some(query), fragment)
             }
             None => {
+                validate_method_name(method_name)?;
+
                 let mut url = URL {
                     name: url_decoded(method_name),
                     method: url_decoded(method_id),
@@ -360,7 +372,7 @@ mod tests {
         };
 
         assert_eq!(
-            url.to_string(), 
+            url.to_string(),
             "did:abcdef:123456?service=frobnik&relativeRef=%2Fref&versionId=1&hl=myhash&extra=parameter",
         );
 
@@ -368,15 +380,15 @@ mod tests {
         map.insert("extra".into(), "".into());
 
         let url = URL {
-                name: "abcdef".into(),
-                method: "123456".into(),
-                service: Some("frobnik".into()),
-                relative_ref: Some("/ref".into()),
-                version_id: Some("1".into()),
-                hash_link: Some("myhash".into()),
-                extra_query: Some(map),
-                ..Default::default()
-            };
+            name: "abcdef".into(),
+            method: "123456".into(),
+            service: Some("frobnik".into()),
+            relative_ref: Some("/ref".into()),
+            version_id: Some("1".into()),
+            hash_link: Some("myhash".into()),
+            extra_query: Some(map),
+            ..Default::default()
+        };
 
         assert_eq!(
             url.to_string(),
@@ -387,16 +399,13 @@ mod tests {
         map.insert("extra".into(), "parameter".into());
 
         let url = URL {
-                name: "abcdef".into(),
-                method: "123456".into(),
-                extra_query: Some(map),
-                ..Default::default()
-            };
+            name: "abcdef".into(),
+            method: "123456".into(),
+            extra_query: Some(map),
+            ..Default::default()
+        };
 
-        assert_eq!(
-            url.to_string(),
-            "did:abcdef:123456?extra=parameter",
-        );
+        assert_eq!(url.to_string(), "did:abcdef:123456?extra=parameter",);
 
         let mut map = BTreeMap::new();
         map.insert("extra".into(), "".into());
@@ -408,10 +417,7 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(
-            url.to_string(),
-            "did:abcdef:123456?extra=",
-        );
+        assert_eq!(url.to_string(), "did:abcdef:123456?extra=",);
 
         let url = URL {
             name: "abcdef".into(),
