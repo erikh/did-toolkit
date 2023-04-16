@@ -41,9 +41,23 @@ pub struct VerificationMethod {
 }
 
 #[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+pub enum ServiceType {
+    CredentialRegistry,
+}
+
+impl ToString for ServiceType {
+    fn to_string(&self) -> String {
+        match self {
+            Self::CredentialRegistry => "CredentialRegistry",
+        }
+        .to_string()
+    }
+}
+
+#[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
     id: Url,
-    typ: Either<String, HashSafeHashSet<String>>,
+    typ: Either<ServiceType, HashSafeHashSet<ServiceType>>,
     endpoint: Either<Url, HashSafeHashSet<Url>>,
 }
 
