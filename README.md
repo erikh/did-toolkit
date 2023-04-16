@@ -13,6 +13,9 @@ specification.
 -   DID URL (different from DID)
     -   Parsing absolute URLs, and mapping relative URLs from absolute ones
     -   Generation from pre-populated struct
+-   DID Document (de)serialization
+    -   Preliminary support for [registry-supported types](https://www.w3.org/TR/did-spec-registries/)
+        -   Types with "issues" were elided for implementation safety's sake
 
 ### Planned Features
 

@@ -67,7 +67,7 @@ pub struct Document {
     id: DID,
     also_known_as: Option<HashSafeHashSet<Url>>,
     controller: Option<Either<DID, HashSafeHashSet<DID>>>,
-    verification_method: Option<Vec<VerificationMethod>>,
+    verification_method: Option<HashSafeHashSet<VerificationMethod>>,
     authentication: Option<Either<HashSafeHashSet<VerificationMethod>, URL>>,
     assertion_method: Option<Either<HashSafeHashSet<VerificationMethod>, URL>>,
     key_agreeement: Option<Either<HashSafeHashSet<VerificationMethod>, URL>>,
