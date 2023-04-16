@@ -18,13 +18,13 @@ impl<T: Eq + Hash + PartialOrd> PartialOrd for OrderedHashSet<T> {
         for item in self.data.iter() {
             for otheritem in other.data.iter() {
                 match item.partial_cmp(otheritem) {
-                    None => {}
+                    Some(std::cmp::Ordering::Equal) | None => {}
                     Some(y) => return Some(y),
                 }
             }
         }
 
-        None
+        Some(std::cmp::Ordering::Equal)
     }
 }
 
