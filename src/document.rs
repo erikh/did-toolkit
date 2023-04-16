@@ -1,4 +1,4 @@
-use crate::{did::DID, hash::HashSafeHashSet, url::URL};
+use crate::{did::DID, hash::HashSafeHashSet, multibase::MultiBase, url::URL};
 use either::Either;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -9,9 +9,7 @@ pub struct VerificationMethod {
     controller: DID,
     typ: String,
     public_key_jwk: Option<jsonwebtoken::jwk::Jwk>,
-    // multibase is a format:
-    // https://datatracker.ietf.org/doc/html/draft-multiformats-multibase-03
-    public_key_multibase: Option<String>,
+    public_key_multibase: Option<MultiBase>,
 }
 
 #[derive(Hash, PartialEq, Eq, Serialize, Deserialize)]
