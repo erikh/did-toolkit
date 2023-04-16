@@ -1,4 +1,5 @@
-use crate::{did::DID, either::Either, url::URL};
+use crate::{did::DID, url::URL};
+use either::Either;
 use std::collections::HashSet;
 use url::Url;
 
