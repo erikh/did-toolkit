@@ -8,6 +8,9 @@ edition = "2021"
 [dependencies]
 anyhow = "^1.0"
 time = { version = "^0.3.0", features = [ "parsing", "macros" ] }
+url = "^2.0"
+jsonwebkey = "^0.3"
+multibase = { version ="^0.9", default-features = false }
 
 [dev-dependencies]
 rand = "^0.8.0"

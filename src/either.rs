@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+#[derive(Eq, PartialEq, PartialOrd, Ord)]
 pub(crate) struct Either<T, R> {
     preferred: Option<T>,
     other: Option<R>,

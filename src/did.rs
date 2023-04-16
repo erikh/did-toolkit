@@ -1,6 +1,5 @@
-use anyhow::anyhow;
-
 use crate::string::{method_id_encoded, url_encoded, validate_method_name};
+use anyhow::anyhow;
 
 #[derive(Default, Debug, Hash, Eq, PartialEq)]
 pub struct DID {

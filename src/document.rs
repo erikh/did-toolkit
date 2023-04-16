@@ -1,17 +1,27 @@
-use std::collections::HashSet;
-
 use crate::{did::DID, either::Either, url::URL};
+use std::collections::HashSet;
+use url::Url;
 
-#[derive(Hash, PartialEq, Eq)]
-struct VerificationMethod {
-    id: DID,
+#[derive(PartialEq, Eq)]
+pub struct VerificationMethod {
+    id: URL,
+    controller: DID,
+    typ: String,
+    public_key_jwk: Option<jsonwebkey::JsonWebKey>,
+    // multibase is a format:
+    // https://datatracker.ietf.org/doc/html/draft-multiformats-multibase-03
+    public_key_multibase: Option<String>,
 }
 
-#[derive(Hash, PartialEq, Eq)]
-struct ServiceEndpoint {}
+#[derive(PartialEq, Eq)]
+pub struct ServiceEndpoint {
+    id: Url,
+    typ: Either<String, HashSet<String>>,
+    endpoint: Either<Url, HashSet<Url>>,
+}
 
 #[allow(dead_code)]
-struct Document {
+pub struct Document {
     id: DID,
     also_known_as: Option<HashSet<String>>,
     controller: Option<Either<DID, HashSet<DID>>>,

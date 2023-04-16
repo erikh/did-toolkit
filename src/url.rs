@@ -1,10 +1,9 @@
+use crate::string::{method_id_encoded, url_decoded, url_encoded, validate_method_name};
 use anyhow::anyhow;
 use std::collections::BTreeMap;
 use time::{
     format_description::FormatItem, macros::format_description, OffsetDateTime, PrimitiveDateTime,
 };
-
-use crate::string::{method_id_encoded, url_decoded, url_encoded, validate_method_name};
 
 static VERSION_TIME_FORMAT: &[FormatItem<'static>] =
     format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]");
