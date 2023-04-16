@@ -1,12 +1,11 @@
-use crate::string::{method_id_encoded, url_decoded, url_encoded, validate_method_name};
-use anyhow::anyhow;
-use std::collections::BTreeMap;
-use time::{
-    format_description::FormatItem, macros::format_description, OffsetDateTime, PrimitiveDateTime,
+use crate::{
+    string::{method_id_encoded, url_decoded, url_encoded, validate_method_name},
+    time::VersionTime,
 };
 
-static VERSION_TIME_FORMAT: &[FormatItem<'static>] =
-    format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]");
+use anyhow::anyhow;
+use serde::{de::Visitor, Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Default, Debug, Hash, Eq, PartialEq)]
 pub struct URL {
@@ -17,9 +16,45 @@ pub struct URL {
     pub service: Option<String>,
     pub relative_ref: Option<Vec<u8>>,
     pub version_id: Option<String>,
-    pub version_time: Option<OffsetDateTime>,
+    pub version_time: Option<VersionTime>,
     pub hash_link: Option<String>,
     pub extra_query: Option<BTreeMap<Vec<u8>, Vec<u8>>>,
+}
+
+impl Serialize for URL {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl Visitor<'_> for URL {
+    type Value = URL;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("Expecting a decentralized identity")
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        match URL::parse(v) {
+            Ok(url) => Ok(url),
+            Err(e) => Err(E::custom(e)),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for URL {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_str::<URL>(Default::default())
+    }
 }
 
 impl ToString for URL {
@@ -57,17 +92,8 @@ impl ToString for URL {
                 ret += "&";
             }
 
-            if let Some(version_time) = self.version_time {
-                ret += &("versionTime=".to_string()
-                    + &format!(
-                        "{}-{:02}-{:02}T{:02}:{:02}:{:02}",
-                        version_time.year(),
-                        u8::from(version_time.month()),
-                        version_time.day(),
-                        version_time.hour(),
-                        version_time.minute(),
-                        version_time.second()
-                    ));
+            if let Some(version_time) = &self.version_time {
+                ret += &("versionTime=".to_string() + &version_time.to_string());
                 ret += "&";
             }
 
@@ -313,11 +339,7 @@ impl URL {
             }
             "versionId" => self.version_id = Some(String::from_utf8(right.to_vec())?),
             "versionTime" => {
-                let dt = PrimitiveDateTime::parse(
-                    &String::from_utf8(right.to_vec())?,
-                    VERSION_TIME_FORMAT,
-                )?;
-                self.version_time = Some(dt.assume_utc());
+                self.version_time = Some(VersionTime::parse(&String::from_utf8(right.to_vec())?)?)
             }
             "hl" => self.hash_link = Some(String::from_utf8(right.to_vec())?),
             _ => {
@@ -411,6 +433,7 @@ mod tests {
     #[test]
     fn test_to_string() {
         use super::URL;
+        use crate::time::VersionTime;
         use std::collections::BTreeMap;
         use time::OffsetDateTime;
 
@@ -588,7 +611,9 @@ mod tests {
             service: Some("frobnik".into()),
             relative_ref: Some("/ref".into()),
             version_id: Some("1".into()),
-            version_time: Some(OffsetDateTime::from_unix_timestamp(260690400).unwrap()),
+            version_time: Some(VersionTime(
+                OffsetDateTime::from_unix_timestamp(260690400).unwrap(),
+            )),
             ..Default::default()
         };
 
@@ -609,6 +634,7 @@ mod tests {
     #[test]
     fn test_parse() {
         use super::URL;
+        use crate::time::VersionTime;
         use std::collections::BTreeMap;
         use time::OffsetDateTime;
 
@@ -831,7 +857,9 @@ mod tests {
                 relative_ref: Some("/ref".into()),
                 version_id: Some("1".into()),
                 hash_link: Some("myhash".into()),
-                version_time: Some(OffsetDateTime::from_unix_timestamp(260690400).unwrap()),
+                version_time: Some(VersionTime(
+                    OffsetDateTime::from_unix_timestamp(260690400).unwrap()
+                )),
                 ..Default::default()
             }
         );

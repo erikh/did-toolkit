@@ -1,10 +1,47 @@
 use crate::string::{method_id_encoded, url_encoded, validate_method_name};
 use anyhow::anyhow;
+use serde::{de::Visitor, Deserialize, Serialize};
 
 #[derive(Default, Debug, Hash, Eq, PartialEq)]
 pub struct DID {
     pub name: Vec<u8>,
     pub method: Vec<u8>,
+}
+
+impl Serialize for DID {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl Visitor<'_> for DID {
+    type Value = DID;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("Expecting a decentralized identity")
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        match DID::parse(v) {
+            Ok(did) => Ok(did),
+            Err(e) => Err(E::custom(e)),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for DID {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_str::<DID>(Default::default())
+    }
 }
 
 impl ToString for DID {
