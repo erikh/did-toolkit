@@ -97,24 +97,87 @@ impl ToString for URL {
     }
 }
 
+#[inline]
+fn before(s: &str, left: char, right: char) -> bool {
+    for c in s.chars() {
+        if c == left {
+            return true;
+        } else if c == right {
+            return false;
+        }
+    }
+
+    return false;
+}
+
 impl URL {
     pub fn parse(s: &str) -> Result<Self, anyhow::Error> {
         match s.strip_prefix("did:") {
             Some(s) => match s.split_once(':') {
-                Some((method_name, right)) => match right.split_once('/') {
-                    Some((method_id, path)) => Self::match_path(
-                        method_name.as_bytes(),
-                        method_id.as_bytes(),
-                        path.as_bytes(),
-                    ),
-                    None => match right.split_once('?') {
-                        Some((method_id, query)) => Self::match_query(
-                            method_name.as_bytes(),
-                            method_id.as_bytes(),
-                            None,
-                            query.as_bytes(),
-                        ),
-                        None => match right.split_once('#') {
+                Some((method_name, right)) => {
+                    if !before(right, '?', '/') && !before(right, '#', '/') {
+                        match right.split_once('/') {
+                            Some((method_id, path)) => Self::match_path(
+                                method_name.as_bytes(),
+                                method_id.as_bytes(),
+                                path.as_bytes(),
+                            ),
+                            None => match right.split_once('?') {
+                                Some((method_id, query)) => Self::match_query(
+                                    method_name.as_bytes(),
+                                    method_id.as_bytes(),
+                                    None,
+                                    query.as_bytes(),
+                                ),
+                                None => match right.split_once('#') {
+                                    Some((method_id, fragment)) => Self::match_fragment(
+                                        method_name.as_bytes(),
+                                        method_id.as_bytes(),
+                                        None,
+                                        None,
+                                        fragment.as_bytes(),
+                                    ),
+                                    None => {
+                                        validate_method_name(method_name.as_bytes())?;
+
+                                        Ok(URL {
+                                            name: url_decoded(method_name.as_bytes()),
+                                            method: url_decoded(right.as_bytes()),
+                                            ..Default::default()
+                                        })
+                                    }
+                                },
+                            },
+                        }
+                    } else if before(right, '?', '#') {
+                        match right.split_once('?') {
+                            Some((method_id, query)) => Self::match_query(
+                                method_name.as_bytes(),
+                                method_id.as_bytes(),
+                                None,
+                                query.as_bytes(),
+                            ),
+                            None => match right.split_once('#') {
+                                Some((method_id, fragment)) => Self::match_fragment(
+                                    method_name.as_bytes(),
+                                    method_id.as_bytes(),
+                                    None,
+                                    None,
+                                    fragment.as_bytes(),
+                                ),
+                                None => {
+                                    validate_method_name(method_name.as_bytes())?;
+
+                                    Ok(URL {
+                                        name: url_decoded(method_name.as_bytes()),
+                                        method: url_decoded(right.as_bytes()),
+                                        ..Default::default()
+                                    })
+                                }
+                            },
+                        }
+                    } else {
+                        match right.split_once('#') {
                             Some((method_id, fragment)) => Self::match_fragment(
                                 method_name.as_bytes(),
                                 method_id.as_bytes(),
@@ -131,9 +194,9 @@ impl URL {
                                     ..Default::default()
                                 })
                             }
-                        },
-                    },
-                },
+                        }
+                    }
+                }
                 None => return Err(anyhow!("DID did not contain method specific ID")),
             },
             None => return Err(anyhow!("DID did not start with `did:` scheme")),
@@ -161,14 +224,36 @@ impl URL {
     ) -> Result<Self, anyhow::Error> {
         let item = String::from_utf8_lossy(left);
 
-        match item.split_once('?') {
-            Some((path, query)) => Self::match_query(
-                method_name,
-                method_id,
-                Some(path.as_bytes()),
-                query.as_bytes(),
-            ),
-            None => match item.split_once('#') {
+        if !before(&item, '#', '?') {
+            match item.split_once('?') {
+                Some((path, query)) => Self::match_query(
+                    method_name,
+                    method_id,
+                    Some(path.as_bytes()),
+                    query.as_bytes(),
+                ),
+                None => match item.split_once('#') {
+                    Some((path, fragment)) => Self::match_fragment(
+                        method_name,
+                        method_id,
+                        Some(path.as_bytes()),
+                        None,
+                        fragment.as_bytes(),
+                    ),
+                    None => {
+                        validate_method_name(method_name)?;
+
+                        Ok(URL {
+                            name: url_decoded(method_name),
+                            method: url_decoded(method_id),
+                            path: Some(url_decoded(left)),
+                            ..Default::default()
+                        })
+                    }
+                },
+            }
+        } else {
+            match item.split_once('#') {
                 Some((path, fragment)) => Self::match_fragment(
                     method_name,
                     method_id,
@@ -186,7 +271,7 @@ impl URL {
                         ..Default::default()
                     })
                 }
-            },
+            }
         }
     }
 
@@ -795,6 +880,66 @@ mod tests {
                 method: "123456:mumble:foo".into(),
                 ..Default::default()
             }
-        )
+        );
+
+        let url =
+            URL::parse("did:example:123?service=agent&relativeRef=/credentials#degree").unwrap();
+
+        assert_eq!(
+            url,
+            URL {
+                name: "example".into(),
+                method: "123".into(),
+                service: Some("agent".into()),
+                relative_ref: Some("/credentials".into()),
+                fragment: Some("degree".into()),
+                ..Default::default()
+            }
+        );
+
+        let url = URL::parse("did:example:123#/degree").unwrap();
+        assert_eq!(
+            url,
+            URL {
+                name: "example".into(),
+                method: "123".into(),
+                fragment: Some("/degree".into()),
+                ..Default::default()
+            }
+        );
+
+        let url = URL::parse("did:example:123#?degree").unwrap();
+        assert_eq!(
+            url,
+            URL {
+                name: "example".into(),
+                method: "123".into(),
+                fragment: Some("?degree".into()),
+                ..Default::default()
+            }
+        );
+
+        let url = URL::parse("did:example:123/path#?degree").unwrap();
+        assert_eq!(
+            url,
+            URL {
+                name: "example".into(),
+                method: "123".into(),
+                path: Some("path".into()),
+                fragment: Some("?degree".into()),
+                ..Default::default()
+            }
+        );
+
+        let url = URL::parse("did:example:123#?/degree").unwrap();
+        assert_eq!(
+            url,
+            URL {
+                name: "example".into(),
+                method: "123".into(),
+                fragment: Some("?/degree".into()),
+                ..Default::default()
+            }
+        );
     }
 }
