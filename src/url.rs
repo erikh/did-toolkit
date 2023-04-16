@@ -9,7 +9,7 @@ use crate::string::{method_id_encoded, url_decoded, url_encoded, validate_method
 static VERSION_TIME_FORMAT: &[FormatItem<'static>] =
     format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]");
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug, Hash, Eq, PartialEq)]
 pub struct URL {
     pub name: Vec<u8>,
     pub method: Vec<u8>,

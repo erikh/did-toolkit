@@ -7,7 +7,8 @@ specification.
 
 ### Currently Supported Features
 
--   DID URL
+-   DID (identifier-only) syntax
+-   DID URL (different from DID)
     -   Parsing absolute URLs, and mapping relative URLs from absolute ones
     -   Generation from pre-populated struct
 
