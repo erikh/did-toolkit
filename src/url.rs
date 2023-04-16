@@ -4,7 +4,7 @@ use time::{
     format_description::FormatItem, macros::format_description, OffsetDateTime, PrimitiveDateTime,
 };
 
-use crate::string::{url_decoded, url_encoded, validate_method_name};
+use crate::string::{method_id_encoded, url_decoded, url_encoded, validate_method_name};
 
 static VERSION_TIME_FORMAT: &[FormatItem<'static>] =
     format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]");
@@ -28,7 +28,7 @@ impl ToString for URL {
         let mut ret = String::from("did:");
 
         ret += &url_encoded(&self.name);
-        ret += &(":".to_string() + &url_encoded(&self.method));
+        ret += &(":".to_string() + &method_id_encoded(&self.method));
 
         if let Some(path) = &self.path {
             ret += &("/".to_string() + &url_encoded(path));
@@ -547,6 +547,14 @@ mod tests {
             url.to_string(),
             "did:abcdef:123456/path?service=frobnik&relativeRef=%2Fref&versionId=1&versionTime=1978-04-06T06:00:00#fragment",
         );
+
+        let url = URL {
+            name: "abcdef".into(),
+            method: "123456:mumble:foo".into(),
+            ..Default::default()
+        };
+
+        assert_eq!(url.to_string(), "did:abcdef:123456:mumble:foo");
     }
 
     #[test]
@@ -778,5 +786,15 @@ mod tests {
                 ..Default::default()
             }
         );
+
+        let url = URL::parse("did:abcdef:123456:mumble:foo").unwrap();
+        assert_eq!(
+            url,
+            URL {
+                name: "abcdef".into(),
+                method: "123456:mumble:foo".into(),
+                ..Default::default()
+            }
+        )
     }
 }

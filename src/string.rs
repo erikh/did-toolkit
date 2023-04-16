@@ -2,11 +2,29 @@ use anyhow::anyhow;
 
 /// Encode portions of the URL according to https://www.w3.org/TR/did-core/#did-syntax
 pub fn url_encoded(input: &[u8]) -> String {
+    url_encoded_internal(input, true)
+}
+
+/// Encode the method_id, which has slightly different rules surrounding the colon.
+pub fn method_id_encoded(input: &[u8]) -> String {
+    url_encoded_internal(input, false)
+}
+
+fn url_encoded_internal(input: &[u8], escape_colon: bool) -> String {
     let mut ret: Vec<u8> = Vec::new();
 
     for idx in input {
         match *idx as char {
             '0'..='9' | 'A'..='Z' | 'a'..='z' | '.' | '-' | '_' => ret.push(*idx),
+            ':' => {
+                if escape_colon {
+                    for i in format!("%{:02X}", idx).bytes() {
+                        ret.push(i)
+                    }
+                } else {
+                    ret.push(*idx)
+                }
+            }
             _ => {
                 for i in format!("%{:02X}", idx).bytes() {
                     ret.push(i)
