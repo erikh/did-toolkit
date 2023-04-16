@@ -6,7 +6,7 @@ use time::{
 
 use crate::string::{url_decoded, url_encoded, validate_method_name};
 
-static VERSION_TIME_FORMAT: &'static [FormatItem<'static>] =
+static VERSION_TIME_FORMAT: &[FormatItem<'static>] =
     format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]");
 
 #[derive(Default, Debug, PartialEq)]
@@ -31,7 +31,7 @@ impl ToString for URL {
         ret += &(":".to_string() + &url_encoded(&self.method));
 
         if let Some(path) = &self.path {
-            ret += &("/".to_string() + &url_encoded(&path));
+            ret += &("/".to_string() + &url_encoded(path));
         }
 
         if self.service.is_some()
@@ -44,17 +44,17 @@ impl ToString for URL {
             ret += "?";
 
             if let Some(service) = &self.service {
-                ret += &("service=".to_string() + &service);
+                ret += &("service=".to_string() + service);
                 ret += "&";
             }
 
             if let Some(relative_ref) = &self.relative_ref {
-                ret += &("relativeRef=".to_string() + &url_encoded(&relative_ref));
+                ret += &("relativeRef=".to_string() + &url_encoded(relative_ref));
                 ret += "&";
             }
 
             if let Some(version_id) = &self.version_id {
-                ret += &("versionId=".to_string() + &version_id);
+                ret += &("versionId=".to_string() + version_id);
                 ret += "&";
             }
 
@@ -73,7 +73,7 @@ impl ToString for URL {
             }
 
             if let Some(hash_link) = &self.hash_link {
-                ret += &("hl=".to_string() + &hash_link);
+                ret += &("hl=".to_string() + hash_link);
                 ret += "&";
             }
 
@@ -83,14 +83,14 @@ impl ToString for URL {
                 }
             }
 
-            ret = match ret.strip_suffix("&") {
+            ret = match ret.strip_suffix('&') {
                 Some(ret) => ret.to_string(),
                 None => ret,
             };
         }
 
         if let Some(fragment) = &self.fragment {
-            ret += &("#".to_string() + &url_encoded(&fragment));
+            ret += &("#".to_string() + &url_encoded(fragment));
         }
 
         ret
@@ -100,21 +100,21 @@ impl ToString for URL {
 impl URL {
     pub fn parse(s: &str) -> Result<Self, anyhow::Error> {
         match s.strip_prefix("did:") {
-            Some(s) => match s.split_once(":") {
-                Some((method_name, right)) => match right.split_once("/") {
+            Some(s) => match s.split_once(':') {
+                Some((method_name, right)) => match right.split_once('/') {
                     Some((method_id, path)) => Self::match_path(
                         method_name.as_bytes(),
                         method_id.as_bytes(),
                         path.as_bytes(),
                     ),
-                    None => match right.split_once("?") {
+                    None => match right.split_once('?') {
                         Some((method_id, query)) => Self::match_query(
                             method_name.as_bytes(),
                             method_id.as_bytes(),
                             None,
                             query.as_bytes(),
                         ),
-                        None => match right.split_once("#") {
+                        None => match right.split_once('#') {
                             Some((method_id, fragment)) => Self::match_fragment(
                                 method_name.as_bytes(),
                                 method_id.as_bytes(),
@@ -141,7 +141,7 @@ impl URL {
     }
 
     pub fn join(&self, s: &str) -> Result<Self, anyhow::Error> {
-        if s.len() == 0 {
+        if s.is_empty() {
             return Err(anyhow!("relative DID URL is empty"));
         }
 
@@ -161,14 +161,14 @@ impl URL {
     ) -> Result<Self, anyhow::Error> {
         let item = String::from_utf8_lossy(left);
 
-        match item.split_once("?") {
+        match item.split_once('?') {
             Some((path, query)) => Self::match_query(
                 method_name,
                 method_id,
                 Some(path.as_bytes()),
                 query.as_bytes(),
             ),
-            None => match item.split_once("#") {
+            None => match item.split_once('#') {
                 Some((path, fragment)) => Self::match_fragment(
                     method_name,
                     method_id,
@@ -204,7 +204,7 @@ impl URL {
             name: url_decoded(method_name),
             method: url_decoded(method_id),
             fragment: Some(url_decoded(fragment)),
-            path: path.and_then(|path| Some(url_decoded(path))),
+            path: path.map(url_decoded),
             ..Default::default()
         };
 
@@ -224,7 +224,7 @@ impl URL {
     ) -> Result<Self, anyhow::Error> {
         let item = String::from_utf8_lossy(query);
 
-        match item.split_once("#") {
+        match item.split_once('#') {
             Some((query, fragment)) => Self::match_fragment(
                 method_name,
                 method_id,
@@ -238,7 +238,7 @@ impl URL {
                 let mut url = URL {
                     name: url_decoded(method_name),
                     method: url_decoded(method_id),
-                    path: path.and_then(|path| Some(url_decoded(path))),
+                    path: path.map(url_decoded),
                     ..Default::default()
                 };
 
@@ -285,8 +285,8 @@ impl URL {
 
         let item = String::from_utf8(query.to_vec())?;
 
-        if !item.contains("&") {
-            match item.split_once("=") {
+        if !item.contains('&') {
+            match item.split_once('=') {
                 Some((left, right)) => {
                     self.match_fixed_query_params(
                         left.as_bytes(),
@@ -299,8 +299,8 @@ impl URL {
                 }
             }
         } else {
-            for part in item.split("&") {
-                match part.split_once("=") {
+            for part in item.split('&') {
+                match part.split_once('=') {
                     Some((left, right)) => {
                         self.match_fixed_query_params(
                             left.as_bytes(),
