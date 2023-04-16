@@ -122,79 +122,12 @@ impl URL {
                                 method_id.as_bytes(),
                                 path.as_bytes(),
                             ),
-                            None => match right.split_once('?') {
-                                Some((method_id, query)) => Self::match_query(
-                                    method_name.as_bytes(),
-                                    method_id.as_bytes(),
-                                    None,
-                                    query.as_bytes(),
-                                ),
-                                None => match right.split_once('#') {
-                                    Some((method_id, fragment)) => Self::match_fragment(
-                                        method_name.as_bytes(),
-                                        method_id.as_bytes(),
-                                        None,
-                                        None,
-                                        fragment.as_bytes(),
-                                    ),
-                                    None => {
-                                        validate_method_name(method_name.as_bytes())?;
-
-                                        Ok(URL {
-                                            name: url_decoded(method_name.as_bytes()),
-                                            method: url_decoded(right.as_bytes()),
-                                            ..Default::default()
-                                        })
-                                    }
-                                },
-                            },
+                            None => Self::split_query(method_name.as_bytes(), right),
                         }
                     } else if before(right, '?', '#') {
-                        match right.split_once('?') {
-                            Some((method_id, query)) => Self::match_query(
-                                method_name.as_bytes(),
-                                method_id.as_bytes(),
-                                None,
-                                query.as_bytes(),
-                            ),
-                            None => match right.split_once('#') {
-                                Some((method_id, fragment)) => Self::match_fragment(
-                                    method_name.as_bytes(),
-                                    method_id.as_bytes(),
-                                    None,
-                                    None,
-                                    fragment.as_bytes(),
-                                ),
-                                None => {
-                                    validate_method_name(method_name.as_bytes())?;
-
-                                    Ok(URL {
-                                        name: url_decoded(method_name.as_bytes()),
-                                        method: url_decoded(right.as_bytes()),
-                                        ..Default::default()
-                                    })
-                                }
-                            },
-                        }
+                        Self::split_query(method_name.as_bytes(), right)
                     } else {
-                        match right.split_once('#') {
-                            Some((method_id, fragment)) => Self::match_fragment(
-                                method_name.as_bytes(),
-                                method_id.as_bytes(),
-                                None,
-                                None,
-                                fragment.as_bytes(),
-                            ),
-                            None => {
-                                validate_method_name(method_name.as_bytes())?;
-
-                                Ok(URL {
-                                    name: url_decoded(method_name.as_bytes()),
-                                    method: url_decoded(right.as_bytes()),
-                                    ..Default::default()
-                                })
-                            }
-                        }
+                        Self::split_fragment(method_name.as_bytes(), right)
                     }
                 }
                 None => return Err(anyhow!("DID did not contain method specific ID")),
@@ -213,6 +146,38 @@ impl URL {
             '?' => Self::match_query(&self.name, &self.method, None, &s.as_bytes()[1..]),
             '#' => Self::match_fragment(&self.name, &self.method, None, None, &s.as_bytes()[1..]),
             _ => Err(anyhow!("DID URL is not relative or is malformed")),
+        }
+    }
+
+    #[inline]
+    fn split_query(method_name: &[u8], right: &str) -> Result<Self, anyhow::Error> {
+        match right.split_once('?') {
+            Some((method_id, query)) => {
+                Self::match_query(method_name, method_id.as_bytes(), None, query.as_bytes())
+            }
+            None => Self::split_fragment(method_name, right),
+        }
+    }
+
+    #[inline]
+    fn split_fragment(method_name: &[u8], right: &str) -> Result<Self, anyhow::Error> {
+        match right.split_once('#') {
+            Some((method_id, fragment)) => Self::match_fragment(
+                method_name,
+                method_id.as_bytes(),
+                None,
+                None,
+                fragment.as_bytes(),
+            ),
+            None => {
+                validate_method_name(method_name)?;
+
+                Ok(URL {
+                    name: url_decoded(method_name),
+                    method: url_decoded(right.as_bytes()),
+                    ..Default::default()
+                })
+            }
         }
     }
 
