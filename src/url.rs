@@ -945,4 +945,46 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn test_serde() {
+        use super::URL;
+
+        let url: [URL; 1] = serde_json::from_str(r#"["did:123456:123"]"#).unwrap();
+        assert_eq!(
+            url[0],
+            URL {
+                name: "123456".into(),
+                method: "123".into(),
+                ..Default::default()
+            }
+        );
+
+        assert_eq!(
+            serde_json::to_string(&url).unwrap(),
+            r#"["did:123456:123"]"#
+        );
+
+        let url: [URL; 1] = serde_json::from_str(
+            r#"["did:123456:123/path?service=foo&relativeRef=/ref#fragment"]"#,
+        )
+        .unwrap();
+        assert_eq!(
+            url[0],
+            URL {
+                name: "123456".into(),
+                method: "123".into(),
+                path: Some("path".into()),
+                service: Some("foo".into()),
+                relative_ref: Some("/ref".into()),
+                fragment: Some("fragment".into()),
+                ..Default::default()
+            }
+        );
+
+        assert_eq!(
+            serde_json::to_string(&url).unwrap(),
+            r#"["did:123456:123/path?service=foo&relativeRef=%2Fref#fragment"]"#,
+        );
+    }
 }

@@ -125,4 +125,24 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn test_serde() {
+        use super::DID;
+
+        let did: [DID; 1] = serde_json::from_str(r#"["did:123456:123"]"#).unwrap();
+        assert_eq!(
+            did[0],
+            DID {
+                name: "123456".into(),
+                method: "123".into(),
+                ..Default::default()
+            }
+        );
+
+        assert_eq!(
+            serde_json::to_string(&did).unwrap(),
+            r#"["did:123456:123"]"#
+        );
+    }
 }
