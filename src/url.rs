@@ -34,7 +34,7 @@ impl Visitor<'_> for URL {
     type Value = URL;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("Expecting a decentralized identity")
+        formatter.write_str("Expecting a decentralized identity URL")
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
