@@ -1,18 +1,18 @@
-use crate::{did::DID, hash::HashSafeHashSet, multibase::MultiBase, url::URL};
+use crate::{did::DID, hash::HashSafeHashSet, jwk::JWK, multibase::MultiBase, url::URL};
 use either::Either;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub struct VerificationMethod {
     id: URL,
     controller: DID,
     typ: String,
-    public_key_jwk: Option<jsonwebtoken::jwk::Jwk>,
+    public_key_jwk: Option<JWK>,
     public_key_multibase: Option<MultiBase>,
 }
 
-#[derive(Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
     id: Url,
     typ: Either<String, HashSafeHashSet<String>>,
@@ -20,7 +20,7 @@ pub struct ServiceEndpoint {
 }
 
 #[allow(dead_code)]
-#[derive(Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub struct Document {
     id: DID,
     also_known_as: Option<HashSafeHashSet<String>>,
