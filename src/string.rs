@@ -76,7 +76,7 @@ pub fn url_decoded(s: &[u8]) -> Vec<u8> {
 /// it.
 pub fn validate_method_name(s: &[u8]) -> Result<(), anyhow::Error> {
     for idx in s {
-        if !(&0x61..=&0x7a).contains(&idx) {
+        if !(&0x61..=&0x7a).contains(&idx) && !('0'..='9').contains(&(*idx as char)) {
             return Err(anyhow!(
                 "Method name has invalid characters (not in 0x61 - 0x7a)"
             ));

@@ -906,5 +906,16 @@ mod tests {
                 ..Default::default()
             }
         );
+
+        let url = URL::parse("did:123456:123#?/degree").unwrap();
+        assert_eq!(
+            url,
+            URL {
+                name: "123456".into(),
+                method: "123".into(),
+                fragment: Some("?/degree".into()),
+                ..Default::default()
+            }
+        );
     }
 }
