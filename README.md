@@ -1,6 +1,6 @@
-## did-toolkit: a toolkit for Distributed Identity Documents in rust-lang
+## did-toolkit: a toolkit for Decentralized Identity Documents in rust-lang
 
-DID is a relatively new [spec](https://www.w3.org/TR/did-core/) for distributed
+DID is a relatively new [spec](https://www.w3.org/TR/did-core/) for decentralized
 identity. This toolkit aims to support as much of the spec as it can, allowing
 you to build services and other tools that are compliant with the
 specification.
