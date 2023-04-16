@@ -18,7 +18,7 @@ impl<T: Eq + Hash + PartialOrd> PartialOrd for OrderedHashSet<T> {
         for item in self.data.iter() {
             for otheritem in other.data.iter() {
                 match item.partial_cmp(otheritem) {
-                    Some(std::cmp::Ordering::Equal) | None => {}
+                    None => {}
                     Some(y) => return Some(y),
                 }
             }
