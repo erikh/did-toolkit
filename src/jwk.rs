@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
-#[derive(Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JWK(jsonwebtoken::jwk::Jwk);
 
 impl PartialOrd for JWK {

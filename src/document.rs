@@ -1,9 +1,9 @@
-use crate::{did::DID, hash::HashSafeHashSet, jwk::JWK, multibase::MultiBase, url::URL};
+use crate::{did::DID, hash::OrderedHashSet, jwk::JWK, multibase::MultiBase, url::URL};
 use either::Either;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub enum VerificationMethodType {
     JWK2020,
     ECDSASECP256K12019,
@@ -31,7 +31,7 @@ impl ToString for VerificationMethodType {
     }
 }
 
-#[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub struct VerificationMethod {
     id: URL,
     controller: DID,
@@ -40,7 +40,7 @@ pub struct VerificationMethod {
     public_key_multibase: Option<MultiBase>,
 }
 
-#[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub enum ServiceType {
     CredentialRegistry,
 }
@@ -54,24 +54,24 @@ impl ToString for ServiceType {
     }
 }
 
-#[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
     id: Url,
-    typ: Either<ServiceType, HashSafeHashSet<ServiceType>>,
-    endpoint: Either<Url, HashSafeHashSet<Url>>,
+    typ: Either<ServiceType, OrderedHashSet<ServiceType>>,
+    endpoint: Either<Url, OrderedHashSet<Url>>,
 }
 
 #[allow(dead_code)]
 #[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
 pub struct Document {
     id: DID,
-    also_known_as: Option<HashSafeHashSet<Url>>,
-    controller: Option<Either<DID, HashSafeHashSet<DID>>>,
-    verification_method: Option<HashSafeHashSet<VerificationMethod>>,
-    authentication: Option<Either<HashSafeHashSet<VerificationMethod>, URL>>,
-    assertion_method: Option<Either<HashSafeHashSet<VerificationMethod>, URL>>,
-    key_agreeement: Option<Either<HashSafeHashSet<VerificationMethod>, URL>>,
-    capability_invocation: Option<Either<HashSafeHashSet<VerificationMethod>, URL>>,
-    capability_delegation: Option<Either<HashSafeHashSet<VerificationMethod>, URL>>,
-    service: Option<HashSafeHashSet<ServiceEndpoint>>,
+    also_known_as: Option<OrderedHashSet<Url>>,
+    controller: Option<Either<DID, OrderedHashSet<DID>>>,
+    verification_method: Option<OrderedHashSet<VerificationMethod>>,
+    authentication: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
+    assertion_method: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
+    key_agreeement: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
+    capability_invocation: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
+    capability_delegation: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
+    service: Option<OrderedHashSet<ServiceEndpoint>>,
 }
