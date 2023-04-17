@@ -619,7 +619,7 @@ mod tests {
 
         assert_eq!(
             url.to_string(),
-            "did:abcdef:123456/path?service=frobnik&relativeRef=%2Fref&versionId=1&versionTime=1978-04-06T06:00:00#fragment",
+            "did:abcdef:123456/path?service=frobnik&relativeRef=%2Fref&versionId=1&versionTime=1978-04-06T06:00:00Z#fragment",
         );
 
         let url = URL {
@@ -842,7 +842,7 @@ mod tests {
         .is_err());
 
         let url = URL::parse(
-            "did:abcdef:123456/path?service=frobnik&relativeRef=%2Fref&versionId=1&hl=myhash&versionTime=1978-04-06T06:00:00#fragment",
+            "did:abcdef:123456/path?service=frobnik&relativeRef=%2Fref&versionId=1&hl=myhash&versionTime=1978-04-06T06:00:00Z#fragment",
         )
         .unwrap();
 

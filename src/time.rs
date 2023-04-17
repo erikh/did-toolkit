@@ -19,7 +19,7 @@ impl Default for VersionTime {
 impl ToString for VersionTime {
     fn to_string(&self) -> String {
         format!(
-            "{}-{:02}-{:02}T{:02}:{:02}:{:02}",
+            "{}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
             self.0.year(),
             u8::from(self.0.month()),
             self.0.day(),
