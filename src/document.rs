@@ -39,7 +39,9 @@ pub struct VerificationMethod {
     controller: DID,
     #[serde(rename = "type")]
     typ: VerificationMethodType,
+    #[serde(rename = "publicKeyJwk")]
     public_key_jwk: Option<JWK>,
+    #[serde(rename = "publicKeyMultibase")]
     public_key_multibase: Option<MultiBase>,
 }
 
@@ -95,6 +97,7 @@ pub struct ServiceEndpoint {
     id: Url,
     #[serde(rename = "type")]
     typ: Either<ServiceType, BTreeSet<ServiceType>>,
+    #[serde(rename = "serviceEndpoint")]
     endpoint: Either<Url, BTreeSet<Url>>,
 }
 
@@ -118,13 +121,19 @@ pub struct Document {
     #[serde(rename = "@context")]
     context: Option<Either<Url, BTreeSet<Url>>>,
     id: DID,
+    #[serde(rename = "alsoKnownAs")]
     also_known_as: Option<BTreeSet<Url>>,
     controller: Option<Either<DID, BTreeSet<DID>>>,
+    #[serde(rename = "verificationMethod")]
     verification_method: Option<BTreeSet<VerificationMethod>>,
     authentication: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    #[serde(rename = "assertionMethod")]
     assertion_method: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    #[serde(rename = "keyAgreement")]
     key_agreement: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    #[serde(rename = "capabilityInvocation")]
     capability_invocation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    #[serde(rename = "capabilityDelegation")]
     capability_delegation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
     service: Option<BTreeSet<ServiceEndpoint>>,
 }
