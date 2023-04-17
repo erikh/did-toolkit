@@ -115,6 +115,8 @@ impl ServiceEndpoint {
 #[allow(dead_code)]
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
+    #[serde(rename = "@context")]
+    context: Option<Either<Url, BTreeSet<Url>>>,
     id: DID,
     also_known_as: Option<BTreeSet<Url>>,
     controller: Option<Either<DID, BTreeSet<DID>>>,
@@ -128,6 +130,10 @@ pub struct Document {
 }
 
 impl Document {
+    pub fn context(&self) -> Option<Either<Url, BTreeSet<Url>>> {
+        self.context.clone()
+    }
+
     pub fn id(&self) -> DID {
         self.id.clone()
     }
