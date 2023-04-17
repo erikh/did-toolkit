@@ -1,15 +1,18 @@
 use anyhow::anyhow;
 
 /// Encode portions of the URL according to https://www.w3.org/TR/did-core/#did-syntax
+#[inline]
 pub fn url_encoded(input: &[u8]) -> String {
     url_encoded_internal(input, true)
 }
 
+#[inline]
 /// Encode the method_id, which has slightly different rules surrounding the colon.
 pub fn method_id_encoded(input: &[u8]) -> String {
     url_encoded_internal(input, false)
 }
 
+#[inline]
 fn url_encoded_internal(input: &[u8], escape_colon: bool) -> String {
     let mut ret: Vec<u8> = Vec::new();
 
@@ -37,6 +40,7 @@ fn url_encoded_internal(input: &[u8], escape_colon: bool) -> String {
 }
 
 /// Decode portions of the URL according to https://www.w3.org/TR/did-core/#did-syntax
+#[inline]
 pub fn url_decoded(s: &[u8]) -> Vec<u8> {
     let mut hexval: u8 = 0;
     let mut hexleft = true;
@@ -74,6 +78,7 @@ pub fn url_decoded(s: &[u8]) -> Vec<u8> {
 /// Validate method names fit within the proper ASCII range according to
 /// https://www.w3.org/TR/did-core/#did-syntax. Return an error if any characters fall outside of
 /// it.
+#[inline]
 pub fn validate_method_name(s: &[u8]) -> Result<(), anyhow::Error> {
     for idx in s {
         if !(&0x61..=&0x7a).contains(&idx) && !('0'..='9').contains(&(*idx as char)) {
