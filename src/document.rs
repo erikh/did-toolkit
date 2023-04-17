@@ -92,6 +92,46 @@ pub struct Document {
 }
 
 impl Document {
+    pub fn id(&self) -> DID {
+        self.id.clone()
+    }
+
+    pub fn also_known_as(&self) -> Option<BTreeSet<Url>> {
+        self.also_known_as.clone()
+    }
+
+    pub fn controller(&self) -> Option<Either<DID, BTreeSet<DID>>> {
+        self.controller.clone()
+    }
+
+    pub fn verification_method(&self) -> Option<BTreeSet<VerificationMethod>> {
+        self.verification_method.clone()
+    }
+
+    pub fn authentication(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+        self.authentication.clone()
+    }
+
+    pub fn assertion_method(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+        self.assertion_method.clone()
+    }
+
+    pub fn key_agreement(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+        self.key_agreement.clone()
+    }
+
+    pub fn capability_invocation(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+        self.capability_invocation.clone()
+    }
+
+    pub fn capability_delegation(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+        self.capability_delegation.clone()
+    }
+
+    pub fn service(&self) -> Option<BTreeSet<ServiceEndpoint>> {
+        self.service.clone()
+    }
+
     pub fn validate(&self) -> Result<(), anyhow::Error> {
         if let Some(vm) = &self.verification_method {
             for v in vm.iter() {
