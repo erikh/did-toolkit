@@ -1,7 +1,8 @@
-use crate::{did::DID, hash::OrderedHashSet, jwk::JWK, multibase::MultiBase, url::URL};
+use crate::{did::DID, jwk::JWK, multibase::MultiBase, url::URL};
 use anyhow::anyhow;
 use either::Either;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 use url::Url;
 
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -71,23 +72,23 @@ impl ToString for ServiceType {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
     id: Url,
-    typ: Either<ServiceType, OrderedHashSet<ServiceType>>,
-    endpoint: Either<Url, OrderedHashSet<Url>>,
+    typ: Either<ServiceType, BTreeSet<ServiceType>>,
+    endpoint: Either<Url, BTreeSet<Url>>,
 }
 
 #[allow(dead_code)]
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
     id: DID,
-    also_known_as: Option<OrderedHashSet<Url>>,
-    controller: Option<Either<DID, OrderedHashSet<DID>>>,
-    verification_method: Option<OrderedHashSet<VerificationMethod>>,
-    authentication: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
-    assertion_method: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
-    key_agreement: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
-    capability_invocation: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
-    capability_delegation: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
-    service: Option<OrderedHashSet<ServiceEndpoint>>,
+    also_known_as: Option<BTreeSet<Url>>,
+    controller: Option<Either<DID, BTreeSet<DID>>>,
+    verification_method: Option<BTreeSet<VerificationMethod>>,
+    authentication: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    assertion_method: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    key_agreement: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    capability_invocation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    capability_delegation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    service: Option<BTreeSet<ServiceEndpoint>>,
 }
 
 impl Document {
