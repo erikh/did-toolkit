@@ -37,12 +37,33 @@ impl ToString for VerificationMethodType {
 pub struct VerificationMethod {
     id: URL,
     controller: DID,
+    #[serde(rename = "type")]
     typ: VerificationMethodType,
     public_key_jwk: Option<JWK>,
     public_key_multibase: Option<MultiBase>,
 }
 
 impl VerificationMethod {
+    pub fn id(&self) -> URL {
+        self.id.clone()
+    }
+
+    pub fn controller(&self) -> DID {
+        self.controller.clone()
+    }
+
+    pub fn verification_type(&self) -> VerificationMethodType {
+        self.typ.clone()
+    }
+
+    pub fn public_key_jwk(&self) -> Option<JWK> {
+        self.public_key_jwk.clone()
+    }
+
+    pub fn public_key_multibase(&self) -> Option<MultiBase> {
+        self.public_key_multibase.clone()
+    }
+
     pub fn validate(&self) -> Result<(), anyhow::Error> {
         if self.public_key_jwk.is_some() && self.public_key_multibase.is_some() {
             return Err(anyhow!(
@@ -72,8 +93,23 @@ impl ToString for ServiceType {
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
     id: Url,
+    #[serde(rename = "type")]
     typ: Either<ServiceType, BTreeSet<ServiceType>>,
     endpoint: Either<Url, BTreeSet<Url>>,
+}
+
+impl ServiceEndpoint {
+    pub fn id(&self) -> Url {
+        self.id.clone()
+    }
+
+    pub fn service_type(&self) -> Either<ServiceType, BTreeSet<ServiceType>> {
+        self.typ.clone()
+    }
+
+    pub fn endpoint(&self) -> Either<Url, BTreeSet<Url>> {
+        self.endpoint.clone()
+    }
 }
 
 #[allow(dead_code)]
