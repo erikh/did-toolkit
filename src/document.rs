@@ -1,4 +1,5 @@
 use crate::{did::DID, hash::OrderedHashSet, jwk::JWK, multibase::MultiBase, url::URL};
+use anyhow::anyhow;
 use either::Either;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -40,6 +41,19 @@ pub struct VerificationMethod {
     public_key_multibase: Option<MultiBase>,
 }
 
+impl VerificationMethod {
+    pub fn validate(&self) -> Result<(), anyhow::Error> {
+        if self.public_key_jwk.is_some() && self.public_key_multibase.is_some() {
+            return Err(anyhow!(
+                "Verification method {} provided both JWK and multibase keys",
+                self.id
+            ));
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ServiceType {
     CredentialRegistry,
@@ -68,10 +82,41 @@ pub struct Document {
     also_known_as: Option<OrderedHashSet<Url>>,
     controller: Option<Either<DID, OrderedHashSet<DID>>>,
     verification_method: Option<OrderedHashSet<VerificationMethod>>,
-    authentication: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
-    assertion_method: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
-    key_agreeement: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
-    capability_invocation: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
-    capability_delegation: Option<Either<OrderedHashSet<VerificationMethod>, URL>>,
+    authentication: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
+    assertion_method: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
+    key_agreement: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
+    capability_invocation: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
+    capability_delegation: Option<OrderedHashSet<Either<VerificationMethod, URL>>>,
     service: Option<OrderedHashSet<ServiceEndpoint>>,
+}
+
+impl Document {
+    pub fn validate(&self) -> Result<(), anyhow::Error> {
+        if let Some(vm) = &self.verification_method {
+            for v in vm.iter() {
+                v.validate()?;
+            }
+        }
+
+        // these are all basically the same, call the inner verification method, or do something
+        // with the DID URL.
+        for field in vec![
+            &self.authentication,
+            &self.assertion_method,
+            &self.key_agreement,
+            &self.capability_invocation,
+            &self.capability_delegation,
+        ] {
+            if let Some(vm) = &field {
+                for v in vm.iter() {
+                    match v {
+                        Either::Left(vm) => vm.validate()?,
+                        Either::Right(_url) => { /* probably need to do something here */ }
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }

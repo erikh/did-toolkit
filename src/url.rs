@@ -5,7 +5,7 @@ use crate::{
 
 use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fmt::Display};
 
 #[derive(Clone, Default, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
 pub struct URL {
@@ -57,8 +57,8 @@ impl<'de> Deserialize<'de> for URL {
     }
 }
 
-impl ToString for URL {
-    fn to_string(&self) -> String {
+impl Display for URL {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut ret = String::from("did:");
 
         ret += &url_encoded(&self.name);
@@ -118,7 +118,7 @@ impl ToString for URL {
             ret += &("#".to_string() + &url_encoded(fragment));
         }
 
-        ret
+        f.write_str(&ret)
     }
 }
 
