@@ -14,3 +14,14 @@ impl PartialOrd for JWK {
         state.finish().partial_cmp(&other_state.finish())
     }
 }
+
+impl Ord for JWK {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let mut state = std::collections::hash_map::DefaultHasher::default();
+        let mut other_state = std::collections::hash_map::DefaultHasher::default();
+        self.0.hash(&mut state);
+        other.0.hash(&mut other_state);
+
+        state.finish().cmp(&other_state.finish())
+    }
+}

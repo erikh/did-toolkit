@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Clone, Default, Debug, Hash, PartialOrd, Eq, PartialEq)]
+#[derive(Clone, Default, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
 pub struct URL {
     pub name: Vec<u8>,
     pub method: Vec<u8>,

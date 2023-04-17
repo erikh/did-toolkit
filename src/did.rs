@@ -2,7 +2,7 @@ use crate::string::{method_id_encoded, url_encoded, validate_method_name};
 use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
 
-#[derive(Clone, Hash, Default, Debug, PartialOrd, Eq, PartialEq)]
+#[derive(Clone, Hash, Default, Debug, PartialOrd, Ord, Eq, PartialEq)]
 pub struct DID {
     pub name: Vec<u8>,
     pub method: Vec<u8>,

@@ -3,7 +3,7 @@ use either::Either;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Clone, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum VerificationMethodType {
     JWK2020,
     ECDSASECP256K12019,
@@ -31,7 +31,7 @@ impl ToString for VerificationMethodType {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct VerificationMethod {
     id: URL,
     controller: DID,
@@ -40,7 +40,7 @@ pub struct VerificationMethod {
     public_key_multibase: Option<MultiBase>,
 }
 
-#[derive(Clone, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ServiceType {
     CredentialRegistry,
 }
@@ -54,7 +54,7 @@ impl ToString for ServiceType {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
     id: Url,
     typ: Either<ServiceType, OrderedHashSet<ServiceType>>,
@@ -62,7 +62,7 @@ pub struct ServiceEndpoint {
 }
 
 #[allow(dead_code)]
-#[derive(Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
     id: DID,
     also_known_as: Option<OrderedHashSet<Url>>,
