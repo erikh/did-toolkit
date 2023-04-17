@@ -5,7 +5,7 @@ use time::{
 };
 
 static VERSION_TIME_FORMAT: &[FormatItem<'static>] =
-    format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]");
+    format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]Z");
 
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
 pub struct VersionTime(pub OffsetDateTime);
