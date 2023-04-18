@@ -2,7 +2,7 @@ use crate::{did::DID, jwk::JWK, multibase::MultiBase, url::URL};
 use anyhow::anyhow;
 use either::Either;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, hash::Hash};
 use url::Url;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ impl ToString for VerificationMethodType {
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct VerificationMethod {
     pub(crate) id: URL,
     pub(crate) controller: DID,
@@ -43,6 +43,14 @@ pub struct VerificationMethod {
     pub(crate) public_key_jwk: Option<JWK>,
     #[serde(rename = "publicKeyMultibase")]
     pub(crate) public_key_multibase: Option<MultiBase>,
+}
+
+// fixate the "key" for the hash on the verification method id. We don't want the rest considered,
+// so we can constrain uniqueness on the id, not, say, the key material.
+impl Hash for VerificationMethod {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write(self.id().to_string().as_bytes())
+    }
 }
 
 impl VerificationMethod {
