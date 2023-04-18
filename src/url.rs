@@ -1,4 +1,5 @@
 use crate::{
+    did::DID,
     string::{method_id_encoded, url_decoded, url_encoded, validate_method_name},
     time::VersionTime,
 };
@@ -171,6 +172,13 @@ impl URL {
             '?' => Self::match_query(&self.name, &self.method, None, &s.as_bytes()[1..]),
             '#' => Self::match_fragment(&self.name, &self.method, None, None, &s.as_bytes()[1..]),
             _ => Err(anyhow!("DID URL is not relative or is malformed")),
+        }
+    }
+
+    pub fn to_did(&self) -> DID {
+        DID {
+            name: self.name.clone(),
+            method: self.method.clone(),
         }
     }
 

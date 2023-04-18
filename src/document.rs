@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use url::Url;
 
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum VerificationMethodType {
     JWK2020,
     ECDSASECP256K12019,
@@ -33,16 +33,16 @@ impl ToString for VerificationMethodType {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct VerificationMethod {
-    id: URL,
-    controller: DID,
+    pub(crate) id: URL,
+    pub(crate) controller: DID,
     #[serde(rename = "type")]
-    typ: VerificationMethodType,
+    pub(crate) typ: VerificationMethodType,
     #[serde(rename = "publicKeyJwk")]
-    public_key_jwk: Option<JWK>,
+    pub(crate) public_key_jwk: Option<JWK>,
     #[serde(rename = "publicKeyMultibase")]
-    public_key_multibase: Option<MultiBase>,
+    pub(crate) public_key_multibase: Option<MultiBase>,
 }
 
 impl VerificationMethod {
@@ -78,7 +78,7 @@ impl VerificationMethod {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ServiceType {
     CredentialRegistry,
 }
@@ -92,13 +92,13 @@ impl ToString for ServiceType {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
-    id: Url,
+    pub(crate) id: Url,
     #[serde(rename = "type")]
-    typ: Either<ServiceType, BTreeSet<ServiceType>>,
+    pub(crate) typ: Either<ServiceType, BTreeSet<ServiceType>>,
     #[serde(rename = "serviceEndpoint")]
-    endpoint: Either<Url, BTreeSet<Url>>,
+    pub(crate) endpoint: Either<Url, BTreeSet<Url>>,
 }
 
 impl ServiceEndpoint {
@@ -116,26 +116,26 @@ impl ServiceEndpoint {
 }
 
 #[allow(dead_code)]
-#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
     #[serde(rename = "@context")]
-    context: Option<Either<Url, BTreeSet<Url>>>,
-    id: DID,
+    pub(crate) context: Option<Either<Url, BTreeSet<Url>>>,
+    pub(crate) id: DID,
     #[serde(rename = "alsoKnownAs")]
-    also_known_as: Option<BTreeSet<Url>>,
-    controller: Option<Either<DID, BTreeSet<DID>>>,
+    pub(crate) also_known_as: Option<BTreeSet<Url>>,
+    pub(crate) controller: Option<Either<DID, BTreeSet<DID>>>,
     #[serde(rename = "verificationMethod")]
-    verification_method: Option<BTreeSet<VerificationMethod>>,
-    authentication: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) verification_method: Option<BTreeSet<VerificationMethod>>,
+    pub(crate) authentication: Option<BTreeSet<Either<VerificationMethod, URL>>>,
     #[serde(rename = "assertionMethod")]
-    assertion_method: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) assertion_method: Option<BTreeSet<Either<VerificationMethod, URL>>>,
     #[serde(rename = "keyAgreement")]
-    key_agreement: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) key_agreement: Option<BTreeSet<Either<VerificationMethod, URL>>>,
     #[serde(rename = "capabilityInvocation")]
-    capability_invocation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) capability_invocation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
     #[serde(rename = "capabilityDelegation")]
-    capability_delegation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
-    service: Option<BTreeSet<ServiceEndpoint>>,
+    pub(crate) capability_delegation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) service: Option<BTreeSet<ServiceEndpoint>>,
 }
 
 impl Document {

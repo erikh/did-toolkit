@@ -4,7 +4,7 @@
 
 use serde::{de::Visitor, Deserialize, Serialize};
 
-#[derive(Clone, Default, Hash, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct MultiBase(Vec<u8>);
 
 impl Serialize for MultiBase {

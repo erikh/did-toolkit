@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::string::{method_id_encoded, url_encoded, validate_method_name};
 use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
@@ -44,13 +46,13 @@ impl<'de> Deserialize<'de> for DID {
     }
 }
 
-impl ToString for DID {
-    fn to_string(&self) -> String {
+impl Display for DID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut ret = String::from("did:");
 
         ret += &url_encoded(&self.name);
         ret += &(":".to_string() + &method_id_encoded(&self.method));
-        ret
+        f.write_str(&ret)
     }
 }
 
