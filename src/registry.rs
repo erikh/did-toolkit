@@ -1,5 +1,9 @@
 #![allow(dead_code)]
-use crate::{did::DID, document::Document, url::URL};
+use crate::{
+    did::DID,
+    document::{Document, VerificationMethod},
+    url::URL,
+};
 use anyhow::anyhow;
 use either::Either;
 use std::collections::BTreeMap;
@@ -27,6 +31,20 @@ impl Registry {
 
     fn follow(&self, url: URL) -> Option<Document> {
         self.get(url.to_did())
+    }
+
+    fn verification_method_for_url(&self, did: DID, url: URL) -> Option<VerificationMethod> {
+        if let Some(doc) = self.get(did.clone()) {
+            if let Some(vm) = doc.verification_method() {
+                for method in vm {
+                    if url == method.id() {
+                        return Some(method);
+                    }
+                }
+            }
+        }
+
+        None
     }
 
     fn controls(&self, did: DID, controller: DID) -> Result<bool, anyhow::Error> {
