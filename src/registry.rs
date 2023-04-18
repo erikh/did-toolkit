@@ -27,11 +27,6 @@ impl Registry {
     fn follow(&self, url: URL) -> Option<Document> {
         self.get(url.to_did())
     }
-
-    fn follow_relative(&self, url: URL, fragment: &str) -> Result<Option<Document>, anyhow::Error> {
-        let qualified = url.join(fragment)?;
-        Ok(self.get(qualified.to_did()))
-    }
 }
 
 mod tests {
@@ -63,5 +58,35 @@ mod tests {
         assert!(reg.get(did3).is_none());
         assert!(reg.remove(did.clone()).is_some());
         assert!(reg.get(did).is_none());
+    }
+
+    #[test]
+    fn test_follow() {
+        use super::Registry;
+        use crate::{did::DID, document::Document, url::URL};
+
+        let mut reg: Registry = Default::default();
+        let did = DID::parse("did:testing:u:alice").unwrap();
+        let doc = Document {
+            id: did.clone(),
+            ..Default::default()
+        };
+
+        let did2 = DID::parse("did:testing:u:bob").unwrap();
+        let doc2 = Document {
+            id: did2.clone(),
+            ..Default::default()
+        };
+
+        assert!(reg.insert(doc.clone()).is_ok());
+        assert!(reg.insert(doc2.clone()).is_ok());
+
+        let url = URL::parse("did:testing:u:alice/path#fragment").unwrap();
+        let url2 = URL::parse("did:testing:u:bob/path#fragment").unwrap();
+        let url3 = URL::parse("did:testing:u:charlie/path#fragment").unwrap();
+
+        assert_eq!(reg.follow(url).unwrap(), doc);
+        assert_eq!(reg.follow(url2).unwrap(), doc2);
+        assert!(reg.follow(url3).is_none());
     }
 }
