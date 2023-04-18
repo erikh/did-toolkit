@@ -29,6 +29,10 @@ impl Registry {
         self.get(url.to_did())
     }
 
+    fn controls(&self, _subject: DID, _target: DID) -> Result<bool, anyhow::Error> {
+        todo!()
+    }
+
     fn equivalent_to_did(&self, did: DID, other: DID) -> Result<bool, anyhow::Error> {
         // there is probably a better way to represent this stew with Iterator methods, but I
         // cannot be fucked to deal with that right now.
