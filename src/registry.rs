@@ -29,8 +29,32 @@ impl Registry {
         self.get(url.to_did())
     }
 
-    fn controls(&self, _subject: DID, _target: DID) -> Result<bool, anyhow::Error> {
-        todo!()
+    fn controls(&self, did: DID, controller: DID) -> Result<bool, anyhow::Error> {
+        if did == controller && self.get(did.clone()).is_some() {
+            return Ok(true);
+        }
+
+        if let Some(did_doc) = self.get(did.clone()) {
+            if self.get(controller.clone()).is_some() {
+                match did_doc.controller() {
+                    Some(Either::Left(did)) => return Ok(did == controller),
+                    Some(Either::Right(did_list)) => {
+                        for did in did_list {
+                            if did == controller {
+                                return Ok(true);
+                            }
+                        }
+                    }
+                    None => return Ok(false),
+                }
+            } else {
+                return Err(anyhow!("DID {} did not exist in the registry", did));
+            }
+        } else {
+            return Err(anyhow!("DID {} did not exist in the registry", did));
+        }
+
+        Ok(false)
     }
 
     fn equivalent_to_did(&self, did: DID, other: DID) -> Result<bool, anyhow::Error> {
