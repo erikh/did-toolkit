@@ -122,7 +122,7 @@ pub struct Document {
     pub(crate) context: Option<Either<Url, BTreeSet<Url>>>,
     pub(crate) id: DID,
     #[serde(rename = "alsoKnownAs")]
-    pub(crate) also_known_as: Option<BTreeSet<Url>>,
+    pub(crate) also_known_as: Option<BTreeSet<Either<DID, Url>>>,
     pub(crate) controller: Option<Either<DID, BTreeSet<DID>>>,
     #[serde(rename = "verificationMethod")]
     pub(crate) verification_method: Option<BTreeSet<VerificationMethod>>,
@@ -147,7 +147,7 @@ impl Document {
         self.id.clone()
     }
 
-    pub fn also_known_as(&self) -> Option<BTreeSet<Url>> {
+    pub fn also_known_as(&self) -> Option<BTreeSet<Either<DID, Url>>> {
         self.also_known_as.clone()
     }
 

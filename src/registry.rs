@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use crate::{did::DID, document::Document, url::URL};
 use anyhow::anyhow;
+use either::Either;
 use std::collections::BTreeMap;
 
 #[derive(Default)]
@@ -26,6 +27,44 @@ impl Registry {
 
     fn follow(&self, url: URL) -> Option<Document> {
         self.get(url.to_did())
+    }
+
+    fn equivalent_to_did(&self, did: DID, other: DID) -> Result<bool, anyhow::Error> {
+        // there is probably a better way to represent this stew with Iterator methods, but I
+        // cannot be fucked to deal with that right now.
+        if let Some(doc) = self.get(did.clone()) {
+            if let Some(other_doc) = self.get(other.clone()) {
+                if let Some(this_aka) = doc.also_known_as() {
+                    for this_aka_each in this_aka {
+                        match this_aka_each {
+                            Either::Left(this_did) => {
+                                if let Some(other_aka) = other_doc.also_known_as() {
+                                    for other_aka_each in other_aka {
+                                        match other_aka_each {
+                                            Either::Left(other_did) => {
+                                                if other_did == this_did {
+                                                    return Ok(true);
+                                                }
+                                            }
+                                            Either::Right(_url) => todo!(),
+                                        }
+                                    }
+                                } else {
+                                    return Ok(false);
+                                }
+                            }
+                            Either::Right(_url) => todo!(),
+                        }
+                    }
+                } else {
+                    return Ok(false);
+                }
+            } else {
+                return Err(anyhow!("DID {} did not exist in the registry", other));
+            }
+        }
+
+        Err(anyhow!("DID {} did not exist in the registry", did))
     }
 }
 
