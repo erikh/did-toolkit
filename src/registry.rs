@@ -47,7 +47,7 @@ impl Registry {
         None
     }
 
-    fn controls(&self, did: &DID, controller: &DID) -> Result<bool, anyhow::Error> {
+    pub fn controls(&self, did: &DID, controller: &DID) -> Result<bool, anyhow::Error> {
         if let Some(did_doc) = self.get(did) {
             if did == controller {
                 return Ok(true);
@@ -75,7 +75,7 @@ impl Registry {
         Ok(false)
     }
 
-    fn equivalent_to_did(&self, did: &DID, other: &DID) -> Result<bool, anyhow::Error> {
+    pub fn equivalent_to_did(&self, did: &DID, other: &DID) -> Result<bool, anyhow::Error> {
         // there is probably a better way to represent this stew with Iterator methods, but I
         // cannot be fucked to deal with that right now.
         if let Some(doc) = self.get(did) {
@@ -173,5 +173,60 @@ mod tests {
         assert_eq!(reg.follow(url).unwrap(), doc);
         assert_eq!(reg.follow(url2).unwrap(), doc2);
         assert!(reg.follow(url3).is_none());
+    }
+
+    #[test]
+    fn test_controls() {
+        use super::Registry;
+        use crate::{did::DID, document::Document};
+        use either::Either;
+        use std::collections::BTreeSet;
+
+        let mut reg: Registry = Default::default();
+        let did = DID::parse("did:testing:u:alice").unwrap();
+        let did2 = DID::parse("did:testing:u:bob").unwrap();
+        let did3 = DID::parse("did:testing:u:charlie").unwrap();
+
+        let doc = Document {
+            id: did.clone(),
+            controller: Some(Either::Left(did2.clone())),
+            ..Default::default()
+        };
+
+        let doc2 = Document {
+            id: did2.clone(),
+            ..Default::default()
+        };
+
+        assert!(reg.insert(doc.clone()).is_ok());
+        assert!(reg.insert(doc2.clone()).is_ok());
+        assert!(reg.controls(&did, &did2).is_ok());
+        assert!(reg.controls(&did2, &did3).is_err());
+        assert!(reg.controls(&did, &did2).unwrap());
+        assert!(!reg.controls(&did2, &did).unwrap());
+
+        assert!(reg.remove(&did).is_some());
+        assert!(reg.remove(&did2).is_some());
+
+        let mut set = BTreeSet::new();
+        set.insert(did2.clone());
+
+        let doc = Document {
+            id: did.clone(),
+            controller: Some(Either::Right(set)),
+            ..Default::default()
+        };
+
+        let doc2 = Document {
+            id: did2.clone(),
+            ..Default::default()
+        };
+
+        assert!(reg.insert(doc.clone()).is_ok());
+        assert!(reg.insert(doc2.clone()).is_ok());
+        assert!(reg.controls(&did, &did2).is_ok());
+        assert!(reg.controls(&did2, &did3).is_err());
+        assert!(reg.controls(&did, &did2).unwrap());
+        assert!(!reg.controls(&did2, &did).unwrap());
     }
 }

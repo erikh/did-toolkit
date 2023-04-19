@@ -211,7 +211,9 @@ impl Document {
                 for v in vm.iter() {
                     match v {
                         Either::Left(vm) => vm.validate()?,
-                        Either::Right(_url) => { /* probably need to do something here */ }
+                        Either::Right(_url) => {
+                            todo!()
+                        }
                     }
                 }
             }
