@@ -259,7 +259,7 @@ mod tests {
 
         let doc = Document {
             id: did.clone(),
-            also_known_as: Some(set),
+            also_known_as: Some(set.clone()),
             ..Default::default()
         };
 
@@ -283,5 +283,23 @@ mod tests {
         assert!(reg.insert(doc3.clone()).is_ok());
         assert!(!reg.equivalent_to_did(&did2, &did3).unwrap());
         assert!(!reg.equivalent_to_did(&did, &did3).unwrap());
+
+        assert!(reg.remove(&did).is_some());
+        assert!(reg.remove(&did2).is_some());
+
+        let doc = Document {
+            id: did.clone(),
+            also_known_as: Some(set),
+            ..Default::default()
+        };
+
+        let doc2 = Document {
+            id: did2.clone(),
+            ..Default::default()
+        };
+
+        assert!(reg.insert(doc).is_ok());
+        assert!(reg.insert(doc2).is_ok());
+        assert!(!reg.equivalent_to_did(&did, &did2).unwrap());
     }
 }
