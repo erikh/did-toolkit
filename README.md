@@ -21,7 +21,7 @@ and eventually the did-web spec. DIF and other specs I hope will follow.
         -   Types with "issues" were elided for implementation safety's sake
 - Preliminary, basic, in-memory Registry. Provides:
   - mapping of documents to DIDs 
-  - cross-referencing of alsoKnownAs to identity documents as equivalent
+  - cross-referencing of alsoKnownAs in complimentary DIDs as equivalent
   - controller verification
   - Lookup of verification method
 
