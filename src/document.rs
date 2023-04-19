@@ -83,7 +83,7 @@ impl VerificationMethod {
         self.public_key_multibase.clone()
     }
 
-    pub fn validate(&self) -> Result<(), anyhow::Error> {
+    pub fn valid(&self) -> Result<(), anyhow::Error> {
         if self.public_key_jwk.is_some() && self.public_key_multibase.is_some() {
             return Err(anyhow!(
                 "Verification method {} provided both JWK and multibase keys",
@@ -135,11 +135,11 @@ impl ServiceEndpoint {
 pub struct VerificationMethods(Option<BTreeSet<Either<VerificationMethod, URL>>>);
 
 impl VerificationMethods {
-    pub fn validate(&self) -> Result<(), anyhow::Error> {
+    pub fn valid(&self) -> Result<(), anyhow::Error> {
         if let Some(vm) = &self.0 {
             for v in vm.iter() {
                 match v {
-                    Either::Left(vm) => vm.validate()?,
+                    Either::Left(vm) => vm.valid()?,
                     Either::Right(_url) => {
                         todo!()
                     }
@@ -219,10 +219,10 @@ impl Document {
         self.service.clone()
     }
 
-    pub fn validate(&self) -> Result<(), anyhow::Error> {
+    pub fn valid(&self) -> Result<(), anyhow::Error> {
         if let Some(vm) = &self.verification_method {
             for v in vm.iter() {
-                v.validate()?;
+                v.valid()?;
             }
         }
 
@@ -235,7 +235,7 @@ impl Document {
             &self.capability_invocation,
             &self.capability_delegation,
         ] {
-            field.validate()?
+            field.valid()?
         }
 
         Ok(())
