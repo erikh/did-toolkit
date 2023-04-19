@@ -7,26 +7,37 @@ use crate::{
 use anyhow::anyhow;
 use either::Either;
 use std::collections::BTreeMap;
+use url::Url;
 
 #[derive(Default)]
-pub struct Registry(BTreeMap<DID, Document>);
+pub struct Registry {
+    r: BTreeMap<DID, Document>,
+    remote_cache: bool,
+}
 
 impl Registry {
+    pub fn new_with_remote_cache() -> Self {
+        Self {
+            r: BTreeMap::new(),
+            remote_cache: true,
+        }
+    }
+
     pub fn insert(&mut self, doc: Document) -> Result<(), anyhow::Error> {
-        if self.0.contains_key(&doc.id()) {
+        if self.r.contains_key(&doc.id()) {
             return Err(anyhow!("DID {} already exists in registry", doc.id()));
         }
 
-        self.0.insert(doc.id(), doc);
+        self.r.insert(doc.id(), doc);
         Ok(())
     }
 
     pub fn remove(&mut self, did: &DID) -> Option<Document> {
-        self.0.remove(did)
+        self.r.remove(did)
     }
 
     pub fn get(&self, did: &DID) -> Option<Document> {
-        self.0.get(did).cloned()
+        self.r.get(did).cloned()
     }
 
     pub fn follow(&self, url: URL) -> Option<Document> {
@@ -75,7 +86,7 @@ impl Registry {
         Ok(false)
     }
 
-    pub fn equivalent_to_did(&self, did: &DID, other: &DID) -> Result<bool, anyhow::Error> {
+    pub fn equivalent_to_did(&mut self, did: &DID, other: &DID) -> Result<bool, anyhow::Error> {
         // there is probably a better way to represent this stew with Iterator methods, but I
         // cannot be fucked to deal with that right now.
         if let Some(doc) = self.get(did) {
@@ -84,22 +95,12 @@ impl Registry {
                     for this_aka_each in this_aka {
                         match this_aka_each {
                             Either::Left(this_did) => {
-                                if let Some(other_aka) = other_doc.also_known_as() {
-                                    for other_aka_each in other_aka {
-                                        match other_aka_each {
-                                            Either::Left(other_did) => {
-                                                if &other_did == did && &this_did == other {
-                                                    return Ok(true);
-                                                }
-                                            }
-                                            Either::Right(_url) => todo!(),
-                                        }
-                                    }
-                                } else {
-                                    return Ok(false);
-                                }
+                                return Ok(self.compare_aka(did, &this_did, &other_doc)?);
                             }
-                            Either::Right(_url) => todo!(),
+                            Either::Right(url) => {
+                                let this_doc = self.cache_document(url)?;
+                                return Ok(self.compare_aka(did, &this_doc.id(), &other_doc)?);
+                            }
                         }
                     }
                 } else {
@@ -113,6 +114,39 @@ impl Registry {
         }
 
         Ok(false)
+    }
+
+    fn compare_aka(
+        &mut self,
+        did: &DID,
+        this_did: &DID,
+        other_doc: &Document,
+    ) -> Result<bool, anyhow::Error> {
+        if let Some(other_aka) = other_doc.also_known_as() {
+            for other_aka_each in other_aka {
+                match other_aka_each {
+                    Either::Left(other_did) => {
+                        if &other_did == did && this_did == &other_doc.id() {
+                            return Ok(true);
+                        }
+                    }
+                    Either::Right(url) => {
+                        let other_did = self.cache_document(url)?.id();
+                        if &other_did == did && this_did == &other_doc.id() {
+                            return Ok(true);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    fn cache_document(&mut self, url: Url) -> Result<Document, anyhow::Error> {
+        let doc = reqwest::blocking::get(url)?.json::<Document>()?;
+        self.insert(doc.clone())?;
+        Ok(doc)
     }
 }
 
