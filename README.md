@@ -5,6 +5,9 @@ identity. This toolkit aims to support as much of the spec as it can, allowing
 you to build services and other tools that are compliant with the
 specification.
 
+The toolkit makes a sincere best-effort to maximize compliance with did-core,
+and eventually the did-web spec. DIF and other specs I hope will follow.
+
 ### Currently Supported Features
 
 -   DID (identifier-only) syntax
@@ -16,6 +19,13 @@ specification.
 -   DID Document (de)serialization
     -   Preliminary support for [registry-supported types](https://www.w3.org/TR/did-spec-registries/)
         -   Types with "issues" were elided for implementation safety's sake
+- Preliminary, basic, in-memory Registry. Provides:
+  - mapping of documents to DIDs 
+  - cross-referencing of alsoKnownAs to identity documents as equivalent
+  - controller verification
+  - Lookup of verification method
+
+
 
 ### Planned Features
 
