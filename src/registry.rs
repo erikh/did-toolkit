@@ -124,18 +124,13 @@ impl Registry {
     ) -> Result<bool, anyhow::Error> {
         if let Some(other_aka) = other_doc.also_known_as() {
             for other_aka_each in other_aka {
-                match other_aka_each {
-                    Either::Left(other_did) => {
-                        if &other_did == did && this_did == &other_doc.id() {
-                            return Ok(true);
-                        }
-                    }
-                    Either::Right(url) => {
-                        let other_did = self.cache_document(url)?.id();
-                        if &other_did == did && this_did == &other_doc.id() {
-                            return Ok(true);
-                        }
-                    }
+                let other_did = match other_aka_each {
+                    Either::Left(other_did) => other_did,
+                    Either::Right(url) => self.cache_document(url)?.id(),
+                };
+
+                if &other_did == did && this_did == &other_doc.id() {
+                    return Ok(true);
                 }
             }
         }
