@@ -95,11 +95,15 @@ impl Registry {
                     for this_aka_each in this_aka {
                         match this_aka_each {
                             Either::Left(this_did) => {
-                                return Ok(self.compare_aka(did, &this_did, &other_doc)?);
+                                if self.compare_aka(did, &this_did, &other_doc)? {
+                                    return Ok(true);
+                                }
                             }
                             Either::Right(url) => {
                                 let this_doc = self.cache_document(url)?;
-                                return Ok(self.compare_aka(did, &this_doc.id(), &other_doc)?);
+                                if self.compare_aka(did, &this_doc.id(), &other_doc)? {
+                                    return Ok(true);
+                                }
                             }
                         }
                     }

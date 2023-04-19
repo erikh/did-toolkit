@@ -145,7 +145,7 @@ impl VerificationMethods {
                         if let Some(registry) = &registry {
                             if let Some(doc) = registry.get(&url.to_did()) {
                                 if let Some(vms) = doc.verification_method() {
-                                    if let Some(_) = vms.iter().find(|vm| &(*vm).id() == url) {
+                                    if vms.iter().any(|vm| &(*vm).id() == url) {
                                         return Ok(());
                                     } else {
                                         return Err(anyhow!("Could not locate verification method prescribed by {} in registry", url));
