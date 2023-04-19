@@ -88,7 +88,7 @@ impl Registry {
                                     for other_aka_each in other_aka {
                                         match other_aka_each {
                                             Either::Left(other_did) => {
-                                                if other_did == this_did {
+                                                if &other_did == did && &this_did == other {
                                                     return Ok(true);
                                                 }
                                             }
@@ -108,9 +108,11 @@ impl Registry {
             } else {
                 return Err(anyhow!("DID {} did not exist in the registry", other));
             }
+        } else {
+            return Err(anyhow!("DID {} did not exist in the registry", did));
         }
 
-        Err(anyhow!("DID {} did not exist in the registry", did))
+        Ok(false)
     }
 }
 
@@ -222,11 +224,64 @@ mod tests {
             ..Default::default()
         };
 
+        let doc3 = Document {
+            id: did3.clone(),
+            controller: Some(Either::Left(did2.clone())),
+            ..Default::default()
+        };
+
         assert!(reg.insert(doc.clone()).is_ok());
         assert!(reg.insert(doc2.clone()).is_ok());
+        assert!(reg.insert(doc3.clone()).is_ok());
         assert!(reg.controls(&did, &did2).is_ok());
-        assert!(reg.controls(&did2, &did3).is_err());
         assert!(reg.controls(&did, &did2).unwrap());
         assert!(!reg.controls(&did2, &did).unwrap());
+        assert!(!reg.controls(&did, &did3).unwrap());
+    }
+
+    #[test]
+    fn test_equivalent_to_did() {
+        use super::Registry;
+        use crate::{did::DID, document::Document};
+        use either::Either;
+        use std::collections::BTreeSet;
+
+        let mut reg: Registry = Default::default();
+        let did = DID::parse("did:testing:u:alice").unwrap();
+        let did2 = DID::parse("did:testing:u:bob").unwrap();
+        let did3 = DID::parse("did:testing:u:charlie").unwrap();
+
+        let mut set = BTreeSet::new();
+        set.insert(Either::Left(did2.clone()));
+
+        let mut set2 = BTreeSet::new();
+        set2.insert(Either::Left(did.clone()));
+
+        let doc = Document {
+            id: did.clone(),
+            also_known_as: Some(set),
+            ..Default::default()
+        };
+
+        let doc2 = Document {
+            id: did2.clone(),
+            also_known_as: Some(set2),
+            ..Default::default()
+        };
+
+        assert!(reg.insert(doc.clone()).is_ok());
+        assert!(reg.insert(doc2.clone()).is_ok());
+        assert!(reg.equivalent_to_did(&did, &did3).is_err());
+        assert!(reg.equivalent_to_did(&did, &did2).unwrap());
+        assert!(reg.equivalent_to_did(&did2, &did).unwrap());
+
+        let doc3 = Document {
+            id: did3.clone(),
+            ..Default::default()
+        };
+
+        assert!(reg.insert(doc3.clone()).is_ok());
+        assert!(!reg.equivalent_to_did(&did2, &did3).unwrap());
+        assert!(!reg.equivalent_to_did(&did, &did3).unwrap());
     }
 }
