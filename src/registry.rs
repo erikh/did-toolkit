@@ -21,20 +21,20 @@ impl Registry {
         Ok(())
     }
 
-    fn remove(&mut self, did: DID) -> Option<Document> {
-        self.0.remove(&did)
+    fn remove(&mut self, did: &DID) -> Option<Document> {
+        self.0.remove(did)
     }
 
-    fn get(&self, did: DID) -> Option<Document> {
-        self.0.get(&did).cloned()
+    fn get(&self, did: &DID) -> Option<Document> {
+        self.0.get(did).cloned()
     }
 
     fn follow(&self, url: URL) -> Option<Document> {
-        self.get(url.to_did())
+        self.get(&url.to_did())
     }
 
-    fn verification_method_for_url(&self, did: DID, url: URL) -> Option<VerificationMethod> {
-        if let Some(doc) = self.get(did.clone()) {
+    fn verification_method_for_url(&self, did: &DID, url: URL) -> Option<VerificationMethod> {
+        if let Some(doc) = self.get(&did) {
             if let Some(vm) = doc.verification_method() {
                 for method in vm {
                     if url == method.id() {
@@ -47,18 +47,18 @@ impl Registry {
         None
     }
 
-    fn controls(&self, did: DID, controller: DID) -> Result<bool, anyhow::Error> {
-        if did == controller && self.get(did.clone()).is_some() {
-            return Ok(true);
-        }
+    fn controls(&self, did: &DID, controller: &DID) -> Result<bool, anyhow::Error> {
+        if let Some(did_doc) = self.get(did) {
+            if did == controller {
+                return Ok(true);
+            }
 
-        if let Some(did_doc) = self.get(did.clone()) {
-            if self.get(controller.clone()).is_some() {
+            if self.get(controller).is_some() {
                 match did_doc.controller() {
-                    Some(Either::Left(did)) => return Ok(did == controller),
+                    Some(Either::Left(did)) => return Ok(&did == controller),
                     Some(Either::Right(did_list)) => {
                         for did in did_list {
-                            if did == controller {
+                            if &did == controller {
                                 return Ok(true);
                             }
                         }
@@ -75,11 +75,11 @@ impl Registry {
         Ok(false)
     }
 
-    fn equivalent_to_did(&self, did: DID, other: DID) -> Result<bool, anyhow::Error> {
+    fn equivalent_to_did(&self, did: &DID, other: &DID) -> Result<bool, anyhow::Error> {
         // there is probably a better way to represent this stew with Iterator methods, but I
         // cannot be fucked to deal with that right now.
-        if let Some(doc) = self.get(did.clone()) {
-            if let Some(other_doc) = self.get(other.clone()) {
+        if let Some(doc) = self.get(did) {
+            if let Some(other_doc) = self.get(other) {
                 if let Some(this_aka) = doc.also_known_as() {
                     for this_aka_each in this_aka {
                         match this_aka_each {
@@ -137,12 +137,12 @@ mod tests {
 
         assert!(reg.insert(doc.clone()).is_ok());
         assert!(reg.insert(doc.clone()).is_err());
-        assert_eq!(reg.get(did.clone()), Some(doc));
+        assert_eq!(reg.get(&did), Some(doc));
         assert!(reg.insert(doc2.clone()).is_ok());
-        assert_eq!(reg.get(did2), Some(doc2));
-        assert!(reg.get(did3).is_none());
-        assert!(reg.remove(did.clone()).is_some());
-        assert!(reg.get(did).is_none());
+        assert_eq!(reg.get(&did2), Some(doc2));
+        assert!(reg.get(&did3).is_none());
+        assert!(reg.remove(&did).is_some());
+        assert!(reg.get(&did).is_none());
     }
 
     #[test]
