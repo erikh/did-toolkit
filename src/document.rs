@@ -58,7 +58,7 @@ impl PartialEq for VerificationMethod {
 // so we can constrain uniqueness on the id, not, say, the key material.
 impl Hash for VerificationMethod {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        state.write(self.id().to_string().as_bytes())
+        self.id().hash(state)
     }
 }
 
