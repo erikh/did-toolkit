@@ -19,13 +19,12 @@ and eventually the did-web spec. DIF and other specs I hope will follow.
 -   DID Document (de)serialization
     -   Preliminary support for [registry-supported types](https://www.w3.org/TR/did-spec-registries/)
         -   Types with "issues" were elided for implementation safety's sake
-- Preliminary, basic, in-memory Registry. Provides:
-  - mapping of documents to DIDs 
-  - cross-referencing of alsoKnownAs in complimentary DIDs as equivalent
-  - controller verification
-  - Lookup of verification method
-
-
+-   Preliminary, basic, in-memory Registry. Provides:
+    -   mapping of documents to DIDs
+    -   cross-referencing of alsoKnownAs in complimentary DIDs as equivalent
+    -   controller verification
+    -   Lookup of verification method
+    -   Optional caching of remote documents on-demand
 
 ### Planned Features
 
