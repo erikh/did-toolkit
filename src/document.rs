@@ -32,7 +32,7 @@ impl Display for VerificationMethodType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct VerificationMethod {
     pub(crate) id: URL,
     pub(crate) controller: DID,
@@ -42,6 +42,16 @@ pub struct VerificationMethod {
     pub(crate) public_key_jwk: Option<JWK>,
     #[serde(rename = "publicKeyMultibase")]
     pub(crate) public_key_multibase: Option<MultiBase>,
+}
+
+impl PartialEq for VerificationMethod {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.controller == other.controller
+            && self.typ == other.typ
+            && self.public_key_jwk == other.public_key_jwk
+            && self.public_key_multibase == other.public_key_multibase
+    }
 }
 
 // fixate the "key" for the hash on the verification method id. We don't want the rest considered,
@@ -218,7 +228,7 @@ impl Document {
 
         // these are all basically the same, call the inner verification method, or do something
         // with the DID URL.
-        for field in vec![
+        for field in [
             &self.authentication,
             &self.assertion_method,
             &self.key_agreement,

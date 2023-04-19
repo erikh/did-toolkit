@@ -133,7 +133,7 @@ fn before(s: &str, left: char, right: char) -> bool {
         }
     }
 
-    return false;
+    false
 }
 
 impl URL {

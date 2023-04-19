@@ -34,7 +34,7 @@ impl Registry {
     }
 
     fn verification_method_for_url(&self, did: &DID, url: URL) -> Option<VerificationMethod> {
-        if let Some(doc) = self.get(&did) {
+        if let Some(doc) = self.get(did) {
             if let Some(vm) = doc.verification_method() {
                 for method in vm {
                     if url == method.id() {
