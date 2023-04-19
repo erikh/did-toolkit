@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 pub struct Registry(BTreeMap<DID, Document>);
 
 impl Registry {
-    fn insert(&mut self, doc: Document) -> Result<(), anyhow::Error> {
+    pub fn insert(&mut self, doc: Document) -> Result<(), anyhow::Error> {
         if self.0.contains_key(&doc.id()) {
             return Err(anyhow!("DID {} already exists in registry", doc.id()));
         }
@@ -21,19 +21,19 @@ impl Registry {
         Ok(())
     }
 
-    fn remove(&mut self, did: &DID) -> Option<Document> {
+    pub fn remove(&mut self, did: &DID) -> Option<Document> {
         self.0.remove(did)
     }
 
-    fn get(&self, did: &DID) -> Option<Document> {
+    pub fn get(&self, did: &DID) -> Option<Document> {
         self.0.get(did).cloned()
     }
 
-    fn follow(&self, url: URL) -> Option<Document> {
+    pub fn follow(&self, url: URL) -> Option<Document> {
         self.get(&url.to_did())
     }
 
-    fn verification_method_for_url(&self, did: &DID, url: URL) -> Option<VerificationMethod> {
+    pub fn verification_method_for_url(&self, did: &DID, url: URL) -> Option<VerificationMethod> {
         if let Some(doc) = self.get(did) {
             if let Some(vm) = doc.verification_method() {
                 for method in vm {

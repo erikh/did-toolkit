@@ -1,4 +1,4 @@
-use crate::{did::DID, jwk::JWK, multibase::MultiBase, url::URL};
+use crate::{did::DID, jwk::JWK, multibase::MultiBase, registry::Registry, url::URL};
 use anyhow::anyhow;
 use either::Either;
 use serde::{Deserialize, Serialize};
@@ -135,13 +135,31 @@ impl ServiceEndpoint {
 pub struct VerificationMethods(Option<BTreeSet<Either<VerificationMethod, URL>>>);
 
 impl VerificationMethods {
-    pub fn valid(&self) -> Result<(), anyhow::Error> {
+    // Takes an optional registry to lookup by URL
+    pub fn valid(&self, registry: Option<&Registry>) -> Result<(), anyhow::Error> {
         if let Some(vm) = &self.0 {
             for v in vm.iter() {
                 match v {
                     Either::Left(vm) => vm.valid()?,
-                    Either::Right(_url) => {
-                        todo!()
+                    Either::Right(url) => {
+                        if let Some(registry) = &registry {
+                            if let Some(doc) = registry.get(&url.to_did()) {
+                                if let Some(vms) = doc.verification_method() {
+                                    if let Some(_) = vms.iter().find(|vm| &(*vm).id() == url) {
+                                        return Ok(());
+                                    } else {
+                                        return Err(anyhow!("Could not locate verification method prescribed by {} in registry", url));
+                                    }
+                                }
+                            } else {
+                                return Err(anyhow!(
+                                    "Could not retrieve DID from DID URL {} in registry",
+                                    url
+                                ));
+                            }
+                        } else {
+                            return Err(anyhow!("DID URL {} provided as verification method, but could not look up in registry because none was provided", url));
+                        }
                     }
                 }
             }
@@ -219,7 +237,8 @@ impl Document {
         self.service.clone()
     }
 
-    pub fn valid(&self) -> Result<(), anyhow::Error> {
+    // takes an optional registry to resolve URLs
+    pub fn valid(&self, registry: Option<&Registry>) -> Result<(), anyhow::Error> {
         if let Some(vm) = &self.verification_method {
             for v in vm.iter() {
                 v.valid()?;
@@ -235,7 +254,7 @@ impl Document {
             &self.capability_invocation,
             &self.capability_delegation,
         ] {
-            field.valid()?
+            field.valid(registry)?
         }
 
         Ok(())
