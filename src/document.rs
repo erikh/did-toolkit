@@ -2,7 +2,7 @@ use crate::{did::DID, jwk::JWK, multibase::MultiBase, url::URL};
 use anyhow::anyhow;
 use either::Either;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, hash::Hash};
+use std::{collections::BTreeSet, fmt::Display, hash::Hash};
 use url::Url;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -17,9 +17,9 @@ pub enum VerificationMethodType {
     VerifiableCondition2021,
 }
 
-impl ToString for VerificationMethodType {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for VerificationMethodType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
             Self::JWK2020 => "JsonWebKey2020",
             Self::ECDSASECP256K12019 => "EcdsaSecp256k1VerificationKey2019",
             Self::Ed255192018 => "Ed25519VerificationKey2018",
@@ -28,8 +28,7 @@ impl ToString for VerificationMethodType {
             Self::PGP2021 => "PgpVerificationKey2021",
             Self::ECDSASECP256K1Recovery2020 => "EcdsaSecp256k1RecoveryMethod2020",
             Self::VerifiableCondition2021 => "VerifiableCondition2021",
-        }
-        .to_string()
+        })
     }
 }
 
@@ -91,12 +90,11 @@ pub enum ServiceType {
     CredentialRegistry,
 }
 
-impl ToString for ServiceType {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for ServiceType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
             Self::CredentialRegistry => "CredentialRegistry",
-        }
-        .to_string()
+        })
     }
 }
 

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
 use time::{
@@ -16,9 +18,9 @@ impl Default for VersionTime {
     }
 }
 
-impl ToString for VersionTime {
-    fn to_string(&self) -> String {
-        format!(
+impl Display for VersionTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!(
             "{}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
             self.0.year(),
             u8::from(self.0.month()),
@@ -26,7 +28,7 @@ impl ToString for VersionTime {
             self.0.hour(),
             self.0.minute(),
             self.0.second()
-        )
+        ))
     }
 }
 
