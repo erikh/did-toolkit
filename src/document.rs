@@ -123,6 +123,26 @@ impl ServiceEndpoint {
     }
 }
 
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct VerificationMethods(Option<BTreeSet<Either<VerificationMethod, URL>>>);
+
+impl VerificationMethods {
+    pub fn validate(&self) -> Result<(), anyhow::Error> {
+        if let Some(vm) = &self.0 {
+            for v in vm.iter() {
+                match v {
+                    Either::Left(vm) => vm.validate()?,
+                    Either::Right(_url) => {
+                        todo!()
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
@@ -134,15 +154,15 @@ pub struct Document {
     pub(crate) controller: Option<Either<DID, BTreeSet<DID>>>,
     #[serde(rename = "verificationMethod")]
     pub(crate) verification_method: Option<BTreeSet<VerificationMethod>>,
-    pub(crate) authentication: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) authentication: VerificationMethods,
     #[serde(rename = "assertionMethod")]
-    pub(crate) assertion_method: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) assertion_method: VerificationMethods,
     #[serde(rename = "keyAgreement")]
-    pub(crate) key_agreement: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) key_agreement: VerificationMethods,
     #[serde(rename = "capabilityInvocation")]
-    pub(crate) capability_invocation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) capability_invocation: VerificationMethods,
     #[serde(rename = "capabilityDelegation")]
-    pub(crate) capability_delegation: Option<BTreeSet<Either<VerificationMethod, URL>>>,
+    pub(crate) capability_delegation: VerificationMethods,
     pub(crate) service: Option<BTreeSet<ServiceEndpoint>>,
 }
 
@@ -167,23 +187,23 @@ impl Document {
         self.verification_method.clone()
     }
 
-    pub fn authentication(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+    pub fn authentication(&self) -> VerificationMethods {
         self.authentication.clone()
     }
 
-    pub fn assertion_method(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+    pub fn assertion_method(&self) -> VerificationMethods {
         self.assertion_method.clone()
     }
 
-    pub fn key_agreement(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+    pub fn key_agreement(&self) -> VerificationMethods {
         self.key_agreement.clone()
     }
 
-    pub fn capability_invocation(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+    pub fn capability_invocation(&self) -> VerificationMethods {
         self.capability_invocation.clone()
     }
 
-    pub fn capability_delegation(&self) -> Option<BTreeSet<Either<VerificationMethod, URL>>> {
+    pub fn capability_delegation(&self) -> VerificationMethods {
         self.capability_delegation.clone()
     }
 
@@ -207,16 +227,7 @@ impl Document {
             &self.capability_invocation,
             &self.capability_delegation,
         ] {
-            if let Some(vm) = &field {
-                for v in vm.iter() {
-                    match v {
-                        Either::Left(vm) => vm.validate()?,
-                        Either::Right(_url) => {
-                            todo!()
-                        }
-                    }
-                }
-            }
+            field.validate()?
         }
 
         Ok(())
