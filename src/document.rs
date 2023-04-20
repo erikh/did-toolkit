@@ -38,9 +38,9 @@ pub struct VerificationMethod {
     pub controller: DID,
     #[serde(rename = "type")]
     pub typ: VerificationMethodType,
-    #[serde(rename = "publicKeyJwk")]
+    #[serde(rename = "publicKeyJwk", skip_serializing_if = "Option::is_none")]
     pub public_key_jwk: Option<JWK>,
-    #[serde(rename = "publicKeyMultibase")]
+    #[serde(rename = "publicKeyMultibase", skip_serializing_if = "Option::is_none")]
     pub public_key_multibase: Option<MultiBase>,
 }
 
@@ -121,9 +121,11 @@ impl Display for ServiceType {
 // seriously, I think someone at the w3c thinks JSON is a programming language
 pub struct ServiceEndpointProperties {
     // only used for LinkedDomains
+    #[serde(skip_serializing_if = "Option::is_none")]
     origins: Option<BTreeSet<Url>>,
 
     // only used for CredentialRegistry
+    #[serde(skip_serializing_if = "Option::is_none")]
     registries: Option<BTreeSet<Url>>,
 }
 
@@ -151,34 +153,32 @@ impl ServiceEndpoint {
 }
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct VerificationMethods(Option<BTreeSet<Either<VerificationMethod, URL>>>);
+pub struct VerificationMethods(BTreeSet<Either<VerificationMethod, URL>>);
 
 impl VerificationMethods {
     // Takes an optional registry to lookup by URL
     pub fn valid(&self, registry: Option<&Registry>) -> Result<(), anyhow::Error> {
-        if let Some(vm) = &self.0 {
-            for v in vm.iter() {
-                match v {
-                    Either::Left(vm) => vm.valid()?,
-                    Either::Right(url) => {
-                        if let Some(registry) = &registry {
-                            if let Some(doc) = registry.get(&url.to_did()) {
-                                if let Some(vms) = doc.verification_method() {
-                                    if vms.iter().any(|vm| &(*vm).id() == url) {
-                                        return Ok(());
-                                    } else {
-                                        return Err(anyhow!("Could not locate verification method prescribed by {} in registry", url));
-                                    }
+        for v in self.0.iter() {
+            match v {
+                Either::Left(vm) => vm.valid()?,
+                Either::Right(url) => {
+                    if let Some(registry) = &registry {
+                        if let Some(doc) = registry.get(&url.to_did()) {
+                            if let Some(vms) = doc.verification_method() {
+                                if vms.iter().any(|vm| &(*vm).id() == url) {
+                                    return Ok(());
+                                } else {
+                                    return Err(anyhow!("Could not locate verification method prescribed by {} in registry", url));
                                 }
-                            } else {
-                                return Err(anyhow!(
-                                    "Could not retrieve DID from DID URL {} in registry",
-                                    url
-                                ));
                             }
                         } else {
-                            return Err(anyhow!("DID URL {} provided as verification method, but could not look up in registry because none was provided", url));
+                            return Err(anyhow!(
+                                "Could not retrieve DID from DID URL {} in registry",
+                                url
+                            ));
                         }
+                    } else {
+                        return Err(anyhow!("DID URL {} provided as verification method, but could not look up in registry because none was provided", url));
                     }
                 }
             }
@@ -191,23 +191,32 @@ impl VerificationMethods {
 #[allow(dead_code)]
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
-    #[serde(rename = "@context")]
+    #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
     pub context: Option<Either<Url, BTreeSet<Url>>>,
     pub id: DID,
-    #[serde(rename = "alsoKnownAs")]
+    #[serde(rename = "alsoKnownAs", skip_serializing_if = "Option::is_none")]
     pub also_known_as: Option<BTreeSet<Either<DID, Url>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub controller: Option<Either<DID, BTreeSet<DID>>>,
-    #[serde(rename = "verificationMethod")]
+    #[serde(rename = "verificationMethod", skip_serializing_if = "Option::is_none")]
     pub verification_method: Option<BTreeSet<VerificationMethod>>,
-    pub authentication: VerificationMethods,
-    #[serde(rename = "assertionMethod")]
-    pub assertion_method: VerificationMethods,
-    #[serde(rename = "keyAgreement")]
-    pub key_agreement: VerificationMethods,
-    #[serde(rename = "capabilityInvocation")]
-    pub capability_invocation: VerificationMethods,
-    #[serde(rename = "capabilityDelegation")]
-    pub capability_delegation: VerificationMethods,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub authentication: Option<VerificationMethods>,
+    #[serde(rename = "assertionMethod", skip_serializing_if = "Option::is_none")]
+    pub assertion_method: Option<VerificationMethods>,
+    #[serde(rename = "keyAgreement", skip_serializing_if = "Option::is_none")]
+    pub key_agreement: Option<VerificationMethods>,
+    #[serde(
+        rename = "capabilityInvocation",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub capability_invocation: Option<VerificationMethods>,
+    #[serde(
+        rename = "capabilityDelegation",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub capability_delegation: Option<VerificationMethods>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub service: Option<BTreeSet<ServiceEndpoint>>,
 }
 
@@ -232,23 +241,23 @@ impl Document {
         self.verification_method.clone()
     }
 
-    pub fn authentication(&self) -> VerificationMethods {
+    pub fn authentication(&self) -> Option<VerificationMethods> {
         self.authentication.clone()
     }
 
-    pub fn assertion_method(&self) -> VerificationMethods {
+    pub fn assertion_method(&self) -> Option<VerificationMethods> {
         self.assertion_method.clone()
     }
 
-    pub fn key_agreement(&self) -> VerificationMethods {
+    pub fn key_agreement(&self) -> Option<VerificationMethods> {
         self.key_agreement.clone()
     }
 
-    pub fn capability_invocation(&self) -> VerificationMethods {
+    pub fn capability_invocation(&self) -> Option<VerificationMethods> {
         self.capability_invocation.clone()
     }
 
-    pub fn capability_delegation(&self) -> VerificationMethods {
+    pub fn capability_delegation(&self) -> Option<VerificationMethods> {
         self.capability_delegation.clone()
     }
 
@@ -273,7 +282,9 @@ impl Document {
             &self.capability_invocation,
             &self.capability_delegation,
         ] {
-            field.valid(registry)?
+            if let Some(field) = field {
+                field.valid(registry)?
+            }
         }
 
         Ok(())
