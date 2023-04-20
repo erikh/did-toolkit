@@ -164,7 +164,7 @@ impl VerificationMethods {
                 Either::Right(url) => {
                     if let Some(registry) = &registry {
                         if let Some(doc) = registry.get(&url.to_did()) {
-                            if let Some(vms) = doc.verification_method() {
+                            if let Some(vms) = doc.verification_method {
                                 if vms.iter().any(|vm| &(*vm).id() == url) {
                                     return Ok(());
                                 } else {
@@ -221,50 +221,6 @@ pub struct Document {
 }
 
 impl Document {
-    pub fn context(&self) -> Option<Either<Url, BTreeSet<Url>>> {
-        self.context.clone()
-    }
-
-    pub fn id(&self) -> DID {
-        self.id.clone()
-    }
-
-    pub fn also_known_as(&self) -> Option<BTreeSet<Either<DID, Url>>> {
-        self.also_known_as.clone()
-    }
-
-    pub fn controller(&self) -> Option<Either<DID, BTreeSet<DID>>> {
-        self.controller.clone()
-    }
-
-    pub fn verification_method(&self) -> Option<BTreeSet<VerificationMethod>> {
-        self.verification_method.clone()
-    }
-
-    pub fn authentication(&self) -> Option<VerificationMethods> {
-        self.authentication.clone()
-    }
-
-    pub fn assertion_method(&self) -> Option<VerificationMethods> {
-        self.assertion_method.clone()
-    }
-
-    pub fn key_agreement(&self) -> Option<VerificationMethods> {
-        self.key_agreement.clone()
-    }
-
-    pub fn capability_invocation(&self) -> Option<VerificationMethods> {
-        self.capability_invocation.clone()
-    }
-
-    pub fn capability_delegation(&self) -> Option<VerificationMethods> {
-        self.capability_delegation.clone()
-    }
-
-    pub fn service(&self) -> Option<BTreeSet<ServiceEndpoint>> {
-        self.service.clone()
-    }
-
     // takes an optional registry to resolve URLs
     pub fn valid(&self, registry: Option<&Registry>) -> Result<(), anyhow::Error> {
         if let Some(vm) = &self.verification_method {

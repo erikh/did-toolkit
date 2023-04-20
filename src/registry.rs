@@ -6,13 +6,52 @@ use crate::{
 };
 use anyhow::anyhow;
 use either::Either;
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    ops::{Index, IndexMut},
+};
 use url::Url;
 
 #[derive(Default)]
 pub struct Registry {
     r: BTreeMap<DID, Document>,
     remote_cache: bool,
+}
+
+impl<'a> Index<&'a DID> for Registry {
+    type Output = Document;
+
+    fn index(&self, index: &'a DID) -> &Self::Output {
+        self.r.index(index)
+    }
+}
+
+impl<'a> IndexMut<&'a DID> for Registry {
+    fn index_mut(&mut self, index: &'a DID) -> &mut Document {
+        self.r.get_mut(index).unwrap()
+    }
+}
+
+impl Index<usize> for Registry {
+    type Output = Document;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.r
+            .iter()
+            .nth(index)
+            .expect("invalid index dereferencing document in registry")
+            .1
+    }
+}
+
+impl IndexMut<usize> for Registry {
+    fn index_mut(&mut self, index: usize) -> &mut Document {
+        self.r
+            .iter_mut()
+            .nth(index)
+            .expect("invalid index dereferencing document in registry")
+            .1
+    }
 }
 
 impl Registry {
@@ -27,12 +66,16 @@ impl Registry {
         self.r.iter()
     }
 
+    pub fn len(&self) -> usize {
+        self.r.len()
+    }
+
     pub fn insert(&mut self, doc: Document) -> Result<(), anyhow::Error> {
-        if self.r.contains_key(&doc.id()) {
-            return Err(anyhow!("DID {} already exists in registry", doc.id()));
+        if self.r.contains_key(&doc.id) {
+            return Err(anyhow!("DID {} already exists in registry", doc.id));
         }
 
-        self.r.insert(doc.id(), doc);
+        self.r.insert(doc.id.clone(), doc);
         Ok(())
     }
 
@@ -50,9 +93,9 @@ impl Registry {
 
     pub fn verification_method_for_url(&self, did: &DID, url: URL) -> Option<VerificationMethod> {
         if let Some(doc) = self.get(did) {
-            if let Some(vm) = doc.verification_method() {
+            if let Some(vm) = doc.verification_method {
                 for method in vm {
-                    if url == method.id() {
+                    if url == method.id {
                         return Some(method);
                     }
                 }
@@ -69,7 +112,7 @@ impl Registry {
             }
 
             if self.get(controller).is_some() {
-                match did_doc.controller() {
+                match did_doc.controller {
                     Some(Either::Left(did)) => return Ok(&did == controller),
                     Some(Either::Right(did_list)) => {
                         for did in did_list {
@@ -95,7 +138,7 @@ impl Registry {
         // cannot be fucked to deal with that right now.
         if let Some(doc) = self.get(did) {
             if let Some(other_doc) = self.get(other) {
-                if let Some(this_aka) = doc.also_known_as() {
+                if let Some(this_aka) = doc.also_known_as {
                     for this_aka_each in this_aka {
                         match this_aka_each {
                             Either::Left(this_did) => {
@@ -105,7 +148,7 @@ impl Registry {
                             }
                             Either::Right(url) => {
                                 let this_doc = self.cache_document(url)?;
-                                if self.compare_aka(did, &this_doc.id(), &other_doc)? {
+                                if self.compare_aka(did, &this_doc.id, &other_doc)? {
                                     return Ok(true);
                                 }
                             }
@@ -130,14 +173,14 @@ impl Registry {
         this_did: &DID,
         other_doc: &Document,
     ) -> Result<bool, anyhow::Error> {
-        if let Some(other_aka) = other_doc.also_known_as() {
+        if let Some(other_aka) = &other_doc.also_known_as {
             for other_aka_each in other_aka {
-                let other_did = match other_aka_each {
-                    Either::Left(other_did) => other_did,
-                    Either::Right(url) => self.cache_document(url)?.id(),
+                let other_did = &match other_aka_each {
+                    Either::Left(other_did) => other_did.clone(),
+                    Either::Right(url) => self.cache_document(url.clone())?.id,
                 };
 
-                if &other_did == did && this_did == &other_doc.id() {
+                if other_did == did && this_did == &other_doc.id {
                     return Ok(true);
                 }
             }
