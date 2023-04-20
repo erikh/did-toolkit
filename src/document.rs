@@ -99,6 +99,7 @@ impl VerificationMethod {
 // it's important to note here that the document that describes these is not very well formed.
 // https://www.w3.org/TR/did-spec-registries/#service-types
 pub enum ServiceType {
+    // https://www.w3.org/TR/did-spec-registries/#credentialregistry
     CredentialRegistry,
     // https://identity.foundation/.well-known/resources/did-configuration/#linked-domain-service-endpoint
     LinkedDomains,
