@@ -11,7 +11,7 @@ use std::{collections::BTreeMap, fmt::Display};
 #[derive(Clone, Default, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
 pub struct URL {
     pub name: Vec<u8>,
-    pub method: Vec<u8>,
+    pub id: Vec<u8>,
     pub path: Option<Vec<u8>>,
     pub fragment: Option<Vec<u8>>,
     pub service: Option<String>,
@@ -63,7 +63,7 @@ impl Display for URL {
         let mut ret = String::from("did:");
 
         ret += &url_encoded(&self.name);
-        ret += &(":".to_string() + &method_id_encoded(&self.method));
+        ret += &(":".to_string() + &method_id_encoded(&self.id));
 
         if let Some(path) = &self.path {
             ret += &("/".to_string() + &url_encoded(path));
@@ -168,9 +168,9 @@ impl URL {
         }
 
         match s.chars().next().unwrap() {
-            '/' => Self::match_path(&self.name, &self.method, &s.as_bytes()[1..]),
-            '?' => Self::match_query(&self.name, &self.method, None, &s.as_bytes()[1..]),
-            '#' => Self::match_fragment(&self.name, &self.method, None, None, &s.as_bytes()[1..]),
+            '/' => Self::match_path(&self.name, &self.id, &s.as_bytes()[1..]),
+            '?' => Self::match_query(&self.name, &self.id, None, &s.as_bytes()[1..]),
+            '#' => Self::match_fragment(&self.name, &self.id, None, None, &s.as_bytes()[1..]),
             _ => Err(anyhow!("DID URL is not relative or is malformed")),
         }
     }
@@ -178,7 +178,7 @@ impl URL {
     pub fn to_did(&self) -> DID {
         DID {
             name: self.name.clone(),
-            method: self.method.clone(),
+            id: self.id.clone(),
         }
     }
 
@@ -207,7 +207,7 @@ impl URL {
 
                 Ok(URL {
                     name: url_decoded(method_name),
-                    method: url_decoded(right.as_bytes()),
+                    id: url_decoded(right.as_bytes()),
                     ..Default::default()
                 })
             }
@@ -243,7 +243,7 @@ impl URL {
 
                         Ok(URL {
                             name: url_decoded(method_name),
-                            method: url_decoded(method_id),
+                            id: url_decoded(method_id),
                             path: Some(url_decoded(left)),
                             ..Default::default()
                         })
@@ -264,7 +264,7 @@ impl URL {
 
                     Ok(URL {
                         name: url_decoded(method_name),
-                        method: url_decoded(method_id),
+                        id: url_decoded(method_id),
                         path: Some(url_decoded(left)),
                         ..Default::default()
                     })
@@ -285,7 +285,7 @@ impl URL {
 
         let mut url = URL {
             name: url_decoded(method_name),
-            method: url_decoded(method_id),
+            id: url_decoded(method_id),
             fragment: Some(url_decoded(fragment)),
             path: path.map(url_decoded),
             ..Default::default()
@@ -320,7 +320,7 @@ impl URL {
 
                 let mut url = URL {
                     name: url_decoded(method_name),
-                    method: url_decoded(method_id),
+                    id: url_decoded(method_id),
                     path: path.map(url_decoded),
                     ..Default::default()
                 };
@@ -409,7 +409,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             ..Default::default()
         };
 
@@ -447,7 +447,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             ..Default::default()
         };
 
@@ -455,7 +455,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             path: Some("path".into()),
             ..Default::default()
         };
@@ -464,7 +464,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             fragment: Some("fragment".into()),
             ..Default::default()
         };
@@ -473,7 +473,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             path: Some("path".into()),
             fragment: Some("fragment".into()),
             ..Default::default()
@@ -483,7 +483,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             service: Some("frobnik".into()),
             ..Default::default()
         };
@@ -492,7 +492,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             service: Some("frobnik".into()),
             relative_ref: Some("/ref".into()),
             ..Default::default()
@@ -505,7 +505,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             service: Some("frobnik".into()),
             relative_ref: Some("/ref".into()),
             version_id: Some("1".into()),
@@ -519,7 +519,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             service: Some("frobnik".into()),
             relative_ref: Some("/ref".into()),
             version_id: Some("1".into()),
@@ -537,7 +537,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             service: Some("frobnik".into()),
             relative_ref: Some("/ref".into()),
             version_id: Some("1".into()),
@@ -556,7 +556,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             service: Some("frobnik".into()),
             relative_ref: Some("/ref".into()),
             version_id: Some("1".into()),
@@ -575,7 +575,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             extra_query: Some(map),
             ..Default::default()
         };
@@ -587,7 +587,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             extra_query: Some(map),
             ..Default::default()
         };
@@ -596,7 +596,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             path: Some("path".into()),
             fragment: Some("fragment".into()),
             service: Some("frobnik".into()),
@@ -613,7 +613,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             path: Some("path".into()),
             fragment: Some("fragment".into()),
             service: Some("frobnik".into()),
@@ -632,7 +632,7 @@ mod tests {
 
         let url = URL {
             name: "abcdef".into(),
-            method: "123456:mumble:foo".into(),
+            id: "123456:mumble:foo".into(),
             ..Default::default()
         };
 
@@ -658,7 +658,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 ..Default::default()
             }
         );
@@ -668,7 +668,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 path: Some("path".into()),
                 ..Default::default()
             }
@@ -679,7 +679,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 fragment: Some("fragment".into()),
                 ..Default::default()
             }
@@ -690,7 +690,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 path: Some("path".into()),
                 fragment: Some("fragment".into()),
                 ..Default::default()
@@ -702,7 +702,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 service: Some("frobnik".into()),
                 ..Default::default()
             }
@@ -713,7 +713,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 service: Some("frobnik".into()),
                 relative_ref: Some("/ref".into()),
                 ..Default::default()
@@ -726,7 +726,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 service: Some("frobnik".into()),
                 relative_ref: Some("/ref".into()),
                 version_id: Some("1".into()),
@@ -742,7 +742,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 service: Some("frobnik".into()),
                 relative_ref: Some("/ref".into()),
                 version_id: Some("1".into()),
@@ -763,7 +763,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 service: Some("frobnik".into()),
                 relative_ref: Some("/ref".into()),
                 version_id: Some("1".into()),
@@ -785,7 +785,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 service: Some("frobnik".into()),
                 relative_ref: Some("/ref".into()),
                 version_id: Some("1".into()),
@@ -804,7 +804,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 extra_query: Some(map),
                 ..Default::default()
             }
@@ -819,7 +819,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 extra_query: Some(map),
                 ..Default::default()
             }
@@ -833,7 +833,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 path: Some("path".into()),
                 fragment: Some("fragment".into()),
                 service: Some("frobnik".into()),
@@ -858,7 +858,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 path: Some("path".into()),
                 fragment: Some("fragment".into()),
                 service: Some("frobnik".into()),
@@ -877,7 +877,7 @@ mod tests {
             url,
             URL {
                 name: "abcdef".into(),
-                method: "123456:mumble:foo".into(),
+                id: "123456:mumble:foo".into(),
                 ..Default::default()
             }
         );
@@ -889,7 +889,7 @@ mod tests {
             url,
             URL {
                 name: "example".into(),
-                method: "123".into(),
+                id: "123".into(),
                 service: Some("agent".into()),
                 relative_ref: Some("/credentials".into()),
                 fragment: Some("degree".into()),
@@ -902,7 +902,7 @@ mod tests {
             url,
             URL {
                 name: "example".into(),
-                method: "123".into(),
+                id: "123".into(),
                 fragment: Some("/degree".into()),
                 ..Default::default()
             }
@@ -913,7 +913,7 @@ mod tests {
             url,
             URL {
                 name: "example".into(),
-                method: "123".into(),
+                id: "123".into(),
                 fragment: Some("?degree".into()),
                 ..Default::default()
             }
@@ -924,7 +924,7 @@ mod tests {
             url,
             URL {
                 name: "example".into(),
-                method: "123".into(),
+                id: "123".into(),
                 path: Some("path".into()),
                 fragment: Some("?degree".into()),
                 ..Default::default()
@@ -936,7 +936,7 @@ mod tests {
             url,
             URL {
                 name: "example".into(),
-                method: "123".into(),
+                id: "123".into(),
                 fragment: Some("?/degree".into()),
                 ..Default::default()
             }
@@ -947,7 +947,7 @@ mod tests {
             url,
             URL {
                 name: "123456".into(),
-                method: "123".into(),
+                id: "123".into(),
                 fragment: Some("?/degree".into()),
                 ..Default::default()
             }
@@ -963,7 +963,7 @@ mod tests {
             url[0],
             URL {
                 name: "123456".into(),
-                method: "123".into(),
+                id: "123".into(),
                 ..Default::default()
             }
         );
@@ -981,7 +981,7 @@ mod tests {
             url[0],
             URL {
                 name: "123456".into(),
-                method: "123".into(),
+                id: "123".into(),
                 path: Some("path".into()),
                 service: Some("foo".into()),
                 relative_ref: Some("/ref".into()),

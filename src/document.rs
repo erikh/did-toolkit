@@ -34,14 +34,14 @@ impl Display for VerificationMethodType {
 
 #[derive(Clone, Debug, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct VerificationMethod {
-    pub(crate) id: URL,
-    pub(crate) controller: DID,
+    pub id: URL,
+    pub controller: DID,
     #[serde(rename = "type")]
-    pub(crate) typ: VerificationMethodType,
+    pub typ: VerificationMethodType,
     #[serde(rename = "publicKeyJwk")]
-    pub(crate) public_key_jwk: Option<JWK>,
+    pub public_key_jwk: Option<JWK>,
     #[serde(rename = "publicKeyMultibase")]
-    pub(crate) public_key_multibase: Option<MultiBase>,
+    pub public_key_multibase: Option<MultiBase>,
 }
 
 impl PartialEq for VerificationMethod {
@@ -129,11 +129,11 @@ pub struct ServiceEndpointProperties {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
-    pub(crate) id: Url,
+    pub id: Url,
     #[serde(rename = "type")]
-    pub(crate) typ: Either<ServiceType, BTreeSet<ServiceType>>,
+    pub typ: Either<ServiceType, BTreeSet<ServiceType>>,
     #[serde(rename = "serviceEndpoint")]
-    pub(crate) endpoint: Either<Url, ServiceEndpointProperties>,
+    pub endpoint: Either<Url, ServiceEndpointProperties>,
 }
 
 impl ServiceEndpoint {
@@ -192,23 +192,23 @@ impl VerificationMethods {
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
     #[serde(rename = "@context")]
-    pub(crate) context: Option<Either<Url, BTreeSet<Url>>>,
-    pub(crate) id: DID,
+    pub context: Option<Either<Url, BTreeSet<Url>>>,
+    pub id: DID,
     #[serde(rename = "alsoKnownAs")]
-    pub(crate) also_known_as: Option<BTreeSet<Either<DID, Url>>>,
-    pub(crate) controller: Option<Either<DID, BTreeSet<DID>>>,
+    pub also_known_as: Option<BTreeSet<Either<DID, Url>>>,
+    pub controller: Option<Either<DID, BTreeSet<DID>>>,
     #[serde(rename = "verificationMethod")]
-    pub(crate) verification_method: Option<BTreeSet<VerificationMethod>>,
-    pub(crate) authentication: VerificationMethods,
+    pub verification_method: Option<BTreeSet<VerificationMethod>>,
+    pub authentication: VerificationMethods,
     #[serde(rename = "assertionMethod")]
-    pub(crate) assertion_method: VerificationMethods,
+    pub assertion_method: VerificationMethods,
     #[serde(rename = "keyAgreement")]
-    pub(crate) key_agreement: VerificationMethods,
+    pub key_agreement: VerificationMethods,
     #[serde(rename = "capabilityInvocation")]
-    pub(crate) capability_invocation: VerificationMethods,
+    pub capability_invocation: VerificationMethods,
     #[serde(rename = "capabilityDelegation")]
-    pub(crate) capability_delegation: VerificationMethods,
-    pub(crate) service: Option<BTreeSet<ServiceEndpoint>>,
+    pub capability_delegation: VerificationMethods,
+    pub service: Option<BTreeSet<ServiceEndpoint>>,
 }
 
 impl Document {

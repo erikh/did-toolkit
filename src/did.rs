@@ -7,7 +7,7 @@ use serde::{de::Visitor, Deserialize, Serialize};
 #[derive(Clone, Hash, Default, Debug, PartialOrd, Ord, Eq, PartialEq)]
 pub struct DID {
     pub name: Vec<u8>,
-    pub method: Vec<u8>,
+    pub id: Vec<u8>,
 }
 
 impl Serialize for DID {
@@ -51,7 +51,7 @@ impl Display for DID {
         let mut ret = String::from("did:");
 
         ret += &url_encoded(&self.name);
-        ret += &(":".to_string() + &method_id_encoded(&self.method));
+        ret += &(":".to_string() + &method_id_encoded(&self.id));
         f.write_str(&ret)
     }
 }
@@ -64,7 +64,7 @@ impl DID {
                     validate_method_name(method_name.as_bytes())?;
                     Ok(DID {
                         name: method_name.into(),
-                        method: method_id.into(),
+                        id: method_id.into(),
                     })
                 }
                 None => Err(anyhow!("DID is missing method_id")),
@@ -81,7 +81,7 @@ mod tests {
 
         let did = DID {
             name: "abcdef".into(),
-            method: "123456".into(),
+            id: "123456".into(),
             ..Default::default()
         };
 
@@ -89,7 +89,7 @@ mod tests {
 
         let did = DID {
             name: "abcdef".into(),
-            method: "123456:u:alice".into(),
+            id: "123456:u:alice".into(),
             ..Default::default()
         };
 
@@ -112,7 +112,7 @@ mod tests {
             did,
             DID {
                 name: "abcdef".into(),
-                method: "123456".into(),
+                id: "123456".into(),
                 ..Default::default()
             }
         );
@@ -122,7 +122,7 @@ mod tests {
             did,
             DID {
                 name: "abcdef".into(),
-                method: "123456:u:alice".into(),
+                id: "123456:u:alice".into(),
                 ..Default::default()
             }
         );
@@ -137,7 +137,7 @@ mod tests {
             did[0],
             DID {
                 name: "123456".into(),
-                method: "123".into(),
+                id: "123".into(),
                 ..Default::default()
             }
         );
