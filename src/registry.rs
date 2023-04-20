@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::anyhow;
 use either::Either;
-use std::collections::{btree_map, BTreeMap};
+use std::collections::BTreeMap;
 use url::Url;
 
 #[derive(Default)]
@@ -23,7 +23,7 @@ impl Registry {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> btree_map::Iter<'a, DID, Document> {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = (&DID, &Document)> + 'a {
         self.r.iter()
     }
 
