@@ -6,28 +6,8 @@ use crate::{
 };
 use anyhow::anyhow;
 use either::Either;
-use std::collections::BTreeMap;
+use std::collections::{btree_map, BTreeMap};
 use url::Url;
-
-// my rust-fu is ungood and I'm pretty sure there's a better way to do this
-pub struct RegistryIterator {
-    r: Vec<(DID, Document)>,
-    count: usize,
-}
-
-impl Iterator for RegistryIterator {
-    type Item = (DID, Document);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let item = self.r.get(self.count);
-        if let Some(item) = item {
-            self.count += 1;
-            Some(item.clone())
-        } else {
-            None
-        }
-    }
-}
 
 #[derive(Default)]
 pub struct Registry {
@@ -43,15 +23,8 @@ impl Registry {
         }
     }
 
-    pub fn iter(&self) -> RegistryIterator {
-        let mut r: Vec<(DID, Document)> = Vec::new();
-
-        // this is gonna be so slow
-        for (key, value) in &self.r {
-            r.push((key.clone(), value.clone()))
-        }
-
-        RegistryIterator { r, count: 0 }.into_iter()
+    pub fn iter<'a>(&'a self) -> btree_map::Iter<'a, DID, Document> {
+        self.r.iter()
     }
 
     pub fn insert(&mut self, doc: Document) -> Result<(), anyhow::Error> {
