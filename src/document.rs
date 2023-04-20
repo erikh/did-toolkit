@@ -96,16 +96,34 @@ impl VerificationMethod {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+// it's important to note here that the document that describes these is not very well formed.
+// https://www.w3.org/TR/did-spec-registries/#service-types
 pub enum ServiceType {
     CredentialRegistry,
+    // https://identity.foundation/.well-known/resources/did-configuration/#linked-domain-service-endpoint
+    LinkedDomains,
+    // there are others (such as DIDCommMessaging) that I did not supply here because they don't
+    // appear to be finished.
 }
 
 impl Display for ServiceType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             Self::CredentialRegistry => "CredentialRegistry",
+            Self::LinkedDomains => "LinkedDomains",
         })
     }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+// a lumping of all the one off garbage in this part of the spec.
+// seriously, I think someone at the w3c thinks JSON is a programming language
+pub struct ServiceEndpointProperties {
+    // only used for LinkedDomains
+    origins: Option<BTreeSet<Url>>,
+
+    // only used for CredentialRegistry
+    registries: Option<BTreeSet<Url>>,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -114,7 +132,7 @@ pub struct ServiceEndpoint {
     #[serde(rename = "type")]
     pub(crate) typ: Either<ServiceType, BTreeSet<ServiceType>>,
     #[serde(rename = "serviceEndpoint")]
-    pub(crate) endpoint: Either<Url, BTreeSet<Url>>,
+    pub(crate) endpoint: Either<Url, ServiceEndpointProperties>,
 }
 
 impl ServiceEndpoint {
@@ -126,7 +144,7 @@ impl ServiceEndpoint {
         self.typ.clone()
     }
 
-    pub fn endpoint(&self) -> Either<Url, BTreeSet<Url>> {
+    pub fn endpoint(&self) -> Either<Url, ServiceEndpointProperties> {
         self.endpoint.clone()
     }
 }
