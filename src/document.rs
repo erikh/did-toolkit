@@ -194,7 +194,12 @@ pub struct Document {
     #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
     pub context: Option<Either<Url, BTreeSet<Url>>>,
     pub id: DID,
-    #[serde(rename = "alsoKnownAs", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "alsoKnownAs",
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::document::serde_support::serialize_aka",
+        deserialize_with = "crate::document::serde_support::deserialize_aka"
+    )]
     pub also_known_as: Option<BTreeSet<Either<DID, Url>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub controller: Option<Either<DID, BTreeSet<DID>>>,
@@ -244,5 +249,87 @@ impl Document {
         }
 
         Ok(())
+    }
+}
+
+mod serde_support {
+    use std::collections::BTreeSet;
+
+    use crate::did::DID;
+    use either::Either;
+    use serde::{
+        de::{SeqAccess, Visitor},
+        ser::SerializeSeq,
+        Deserializer, Serializer,
+    };
+    use url::Url;
+
+    struct AKAVisitor;
+    impl<'de> Visitor<'de> for AKAVisitor {
+        type Value = Option<BTreeSet<Either<DID, Url>>>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("expected array of DIDs or URLs, intermixed")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, <A as SeqAccess<'de>>::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut set = BTreeSet::new();
+
+            loop {
+                if let Some(item) = seq.next_element()? {
+                    if let Ok(did) = DID::parse(item) {
+                        set.insert(Either::Left(did));
+                    } else if let Ok(url) = Url::parse(item) {
+                        set.insert(Either::Right(url));
+                    } else {
+                        break Err(serde::de::Error::custom("Not a DID or URL"));
+                    }
+                } else {
+                    break Ok(Some(set));
+                }
+            }
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(None)
+        }
+    }
+
+    pub fn serialize_aka<S>(
+        target: &Option<BTreeSet<Either<DID, Url>>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match target {
+            None => serializer.serialize_none(),
+            Some(set) => {
+                let mut seq = serializer.serialize_seq(Some(set.len()))?;
+                for item in set {
+                    seq.serialize_element(&match item {
+                        Either::Left(did) => did.to_string(),
+                        Either::Right(url) => url.to_string(),
+                    })?;
+                }
+                seq.end()
+            }
+        }
+    }
+
+    pub fn deserialize_aka<'de, D>(
+        deserializer: D,
+    ) -> Result<Option<BTreeSet<Either<DID, Url>>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let visitor = AKAVisitor;
+        deserializer.deserialize_str(visitor)
     }
 }
