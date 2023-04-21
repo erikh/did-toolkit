@@ -197,11 +197,13 @@ pub struct Document {
     #[serde(
         rename = "alsoKnownAs",
         skip_serializing_if = "Option::is_none",
-        serialize_with = "crate::document::serde_support::serialize_aka",
-        deserialize_with = "crate::document::serde_support::deserialize_aka"
+        serialize_with = "crate::document::serde_support::serialize_aka"
     )]
     pub also_known_as: Option<BTreeSet<Either<DID, Url>>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::document::serde_support::serialize_controller"
+    )]
     pub controller: Option<Either<DID, BTreeSet<DID>>>,
     #[serde(rename = "verificationMethod", skip_serializing_if = "Option::is_none")]
     pub verification_method: Option<BTreeSet<VerificationMethod>>,
@@ -253,16 +255,84 @@ impl Document {
 }
 
 mod serde_support {
-    use std::collections::BTreeSet;
-
     use crate::did::DID;
     use either::Either;
     use serde::{
         de::{SeqAccess, Visitor},
         ser::SerializeSeq,
-        Deserializer, Serializer,
+        Serializer,
     };
+    use std::collections::BTreeSet;
     use url::Url;
+
+    struct ControllerVisitor;
+    impl<'de> Visitor<'de> for ControllerVisitor {
+        type Value = Option<Either<DID, BTreeSet<DID>>>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("expected array of DIDs or URLs, intermixed")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            match DID::parse(v) {
+                Ok(did) => Ok(Some(Either::Left(did))),
+                Err(e) => Err(E::custom(format!("not a DID: {}", e))),
+            }
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, <A as SeqAccess<'de>>::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut set = BTreeSet::new();
+
+            loop {
+                if let Some(item) = seq.next_element()? {
+                    if let Ok(did) = DID::parse(item) {
+                        set.insert(did);
+                    } else {
+                        break Err(serde::de::Error::custom("Not a DID"));
+                    }
+                } else {
+                    if set.is_empty() {
+                        break Ok(None);
+                    } else {
+                        break Ok(Some(Either::Right(set)));
+                    }
+                }
+            }
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(None)
+        }
+    }
+
+    pub fn serialize_controller<S>(
+        target: &Option<Either<DID, BTreeSet<DID>>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match target {
+            None => serializer.serialize_none(),
+            Some(Either::Left(did)) => serializer.serialize_str(&did.to_string()),
+            Some(Either::Right(set)) => {
+                let mut seq = serializer.serialize_seq(Some(set.len()))?;
+                for item in set {
+                    seq.serialize_element(&item.to_string())?;
+                }
+                seq.end()
+            }
+        }
+    }
 
     struct AKAVisitor;
     impl<'de> Visitor<'de> for AKAVisitor {
@@ -288,7 +358,11 @@ mod serde_support {
                         break Err(serde::de::Error::custom("Not a DID or URL"));
                     }
                 } else {
-                    break Ok(Some(set));
+                    if set.is_empty() {
+                        break Ok(None);
+                    } else {
+                        break Ok(Some(set));
+                    }
                 }
             }
         }
@@ -321,14 +395,5 @@ mod serde_support {
                 seq.end()
             }
         }
-    }
-
-    pub fn deserialize_aka<'de, D>(
-        deserializer: D,
-    ) -> Result<Option<BTreeSet<Either<DID, Url>>>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_str(AKAVisitor)
     }
 }
