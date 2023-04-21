@@ -329,7 +329,6 @@ mod serde_support {
     where
         D: Deserializer<'de>,
     {
-        let visitor = AKAVisitor;
-        deserializer.deserialize_str(visitor)
+        deserializer.deserialize_str(AKAVisitor)
     }
 }
