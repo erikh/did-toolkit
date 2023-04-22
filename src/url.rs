@@ -3,7 +3,6 @@ use crate::{
     string::{method_id_encoded, url_decoded, url_encoded, validate_method_name},
     time::VersionTime,
 };
-
 use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{collections::BTreeMap, fmt::Display};

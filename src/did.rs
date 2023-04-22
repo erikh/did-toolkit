@@ -1,8 +1,7 @@
-use std::fmt::Display;
-
 use crate::string::{method_id_encoded, url_encoded, validate_method_name};
 use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
+use std::fmt::Display;
 
 #[derive(Clone, Hash, Default, Debug, PartialOrd, Ord, Eq, PartialEq)]
 pub struct DID {

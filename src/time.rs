@@ -1,7 +1,6 @@
-use std::fmt::Display;
-
 use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
+use std::fmt::Display;
 use time::{
     format_description::FormatItem, macros::format_description, OffsetDateTime, PrimitiveDateTime,
 };
