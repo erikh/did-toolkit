@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 // use std::path::PathBuf;
 // use util::create_files;
 //
@@ -8,7 +10,6 @@
 //     create_files(10, PathBuf::from(dir), 5).unwrap();
 // }
 
-#![allow(dead_code)]
 mod util {
     use std::{collections::BTreeSet, path::PathBuf};
 
@@ -32,7 +33,8 @@ mod util {
             }
         }
 
-        link_documents(&mut reg, complexity);
+        link_documents_aka(&mut reg, complexity);
+        link_documents_controller(&mut reg, complexity);
 
         let mut num = 0;
 
@@ -45,7 +47,33 @@ mod util {
         Ok(())
     }
 
-    pub fn link_documents(reg: &mut Registry, iterations: usize) {
+    pub fn link_documents_controller(reg: &mut Registry, iterations: usize) {
+        for _ in 0..iterations {
+            let one = &mut reg[rand::random::<usize>() % reg.len()].clone();
+            let two = reg[rand::random::<usize>() % reg.len()].clone();
+
+            if let None = one.controller {
+                reg[&one.id].controller = Some(Either::Left(two.id));
+            } else {
+                match one.controller.clone().unwrap() {
+                    Either::Left(did) => {
+                        if did != two.id {
+                            let mut set = BTreeSet::new();
+                            set.insert(did);
+                            set.insert(two.id);
+                            reg[&one.id].controller = Some(Either::Right(set));
+                        }
+                    }
+                    Either::Right(mut set) => {
+                        set.insert(two.id);
+                        reg[&one.id].controller = Some(Either::Right(set));
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn link_documents_aka(reg: &mut Registry, iterations: usize) {
         for _ in 0..iterations {
             let one = reg[rand::random::<usize>() % reg.len()].clone();
             let two = reg[rand::random::<usize>() % reg.len()].clone();
