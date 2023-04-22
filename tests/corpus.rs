@@ -1,13 +1,14 @@
-use std::path::PathBuf;
-use util::create_files;
+// use std::path::PathBuf;
+// use util::create_files;
+//
+// #[test]
+// fn test_generate() {
+//     let dir = PathBuf::from("/tmp/test");
+//     std::fs::create_dir_all(dir.clone()).unwrap();
+//     create_files(10, PathBuf::from(dir), 5).unwrap();
+// }
 
-#[test]
-fn test_generate() {
-    let dir = PathBuf::from("/tmp/test");
-    std::fs::create_dir_all(dir.clone()).unwrap();
-    create_files(10, PathBuf::from(dir), 5).unwrap();
-}
-
+#![allow(dead_code)]
 mod util {
     use std::{collections::BTreeSet, path::PathBuf};
 

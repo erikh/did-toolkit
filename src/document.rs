@@ -257,62 +257,9 @@ impl Document {
 mod serde_support {
     use crate::did::DID;
     use either::Either;
-    use serde::{
-        de::{SeqAccess, Visitor},
-        ser::SerializeSeq,
-        Serializer,
-    };
+    use serde::{ser::SerializeSeq, Serializer};
     use std::collections::BTreeSet;
     use url::Url;
-
-    struct ControllerVisitor;
-    impl<'de> Visitor<'de> for ControllerVisitor {
-        type Value = Option<Either<DID, BTreeSet<DID>>>;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("expected array of DIDs or URLs, intermixed")
-        }
-
-        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            match DID::parse(v) {
-                Ok(did) => Ok(Some(Either::Left(did))),
-                Err(e) => Err(E::custom(format!("not a DID: {}", e))),
-            }
-        }
-
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, <A as SeqAccess<'de>>::Error>
-        where
-            A: serde::de::SeqAccess<'de>,
-        {
-            let mut set = BTreeSet::new();
-
-            loop {
-                if let Some(item) = seq.next_element()? {
-                    if let Ok(did) = DID::parse(item) {
-                        set.insert(did);
-                    } else {
-                        break Err(serde::de::Error::custom("Not a DID"));
-                    }
-                } else {
-                    if set.is_empty() {
-                        break Ok(None);
-                    } else {
-                        break Ok(Some(Either::Right(set)));
-                    }
-                }
-            }
-        }
-
-        fn visit_none<E>(self) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            Ok(None)
-        }
-    }
 
     pub fn serialize_controller<S>(
         target: &Option<Either<DID, BTreeSet<DID>>>,
@@ -331,47 +278,6 @@ mod serde_support {
                 }
                 seq.end()
             }
-        }
-    }
-
-    struct AKAVisitor;
-    impl<'de> Visitor<'de> for AKAVisitor {
-        type Value = Option<BTreeSet<Either<DID, Url>>>;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("expected array of DIDs or URLs, intermixed")
-        }
-
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, <A as SeqAccess<'de>>::Error>
-        where
-            A: serde::de::SeqAccess<'de>,
-        {
-            let mut set = BTreeSet::new();
-
-            loop {
-                if let Some(item) = seq.next_element()? {
-                    if let Ok(did) = DID::parse(item) {
-                        set.insert(Either::Left(did));
-                    } else if let Ok(url) = Url::parse(item) {
-                        set.insert(Either::Right(url));
-                    } else {
-                        break Err(serde::de::Error::custom("Not a DID or URL"));
-                    }
-                } else {
-                    if set.is_empty() {
-                        break Ok(None);
-                    } else {
-                        break Ok(Some(set));
-                    }
-                }
-            }
-        }
-
-        fn visit_none<E>(self) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            Ok(None)
         }
     }
 
