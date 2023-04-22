@@ -1,7 +1,7 @@
 use crate::{did::DID, jwk::JWK, multibase::MultiBase, registry::Registry, url::URL};
 use anyhow::anyhow;
 use either::Either;
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeSeq, Deserialize, Serialize, Serializer};
 use std::{collections::BTreeSet, fmt::Display, hash::Hash};
 use url::Url;
 
@@ -58,31 +58,11 @@ impl PartialEq for VerificationMethod {
 // so we can constrain uniqueness on the id, not, say, the key material.
 impl Hash for VerificationMethod {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id().hash(state)
+        self.id.hash(state)
     }
 }
 
 impl VerificationMethod {
-    pub fn id(&self) -> URL {
-        self.id.clone()
-    }
-
-    pub fn controller(&self) -> DID {
-        self.controller.clone()
-    }
-
-    pub fn verification_type(&self) -> VerificationMethodType {
-        self.typ.clone()
-    }
-
-    pub fn public_key_jwk(&self) -> Option<JWK> {
-        self.public_key_jwk.clone()
-    }
-
-    pub fn public_key_multibase(&self) -> Option<MultiBase> {
-        self.public_key_multibase.clone()
-    }
-
     pub fn valid(&self) -> Result<(), anyhow::Error> {
         if self.public_key_jwk.is_some() && self.public_key_multibase.is_some() {
             return Err(anyhow!(
@@ -152,8 +132,28 @@ impl ServiceEndpoint {
     }
 }
 
-#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
 pub struct VerificationMethods(BTreeSet<Either<VerificationMethod, URL>>);
+
+impl Serialize for VerificationMethods {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
+        for item in &self.0 {
+            match item {
+                Either::Left(vm) => {
+                    seq.serialize_element(&vm)?;
+                }
+                Either::Right(url) => {
+                    seq.serialize_element(&url)?;
+                }
+            }
+        }
+        seq.end()
+    }
+}
 
 impl VerificationMethods {
     // Takes an optional registry to lookup by URL
@@ -165,7 +165,7 @@ impl VerificationMethods {
                     if let Some(registry) = &registry {
                         if let Some(doc) = registry.get(&url.to_did()) {
                             if let Some(vms) = doc.verification_method {
-                                if vms.iter().any(|vm| &(*vm).id() == url) {
+                                if vms.iter().any(|vm| &(*vm).id == url) {
                                     return Ok(());
                                 } else {
                                     return Err(anyhow!("Could not locate verification method prescribed by {} in registry", url));

@@ -71,6 +71,14 @@ impl DID {
             None => Err(anyhow!("DID is missing method_name, method_id")),
         }
     }
+
+    // FIXME
+    // pub fn join(&self, mut url: URL) -> URL {
+    //     url.id = self.id.clone();
+    //     url.name = self.name.clone();
+    //
+    //     url
+    // }
 }
 
 mod tests {

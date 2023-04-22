@@ -9,8 +9,12 @@ use std::{collections::BTreeMap, fmt::Display};
 
 #[derive(Clone, Default, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
 pub struct URL {
-    pub name: Vec<u8>,
-    pub id: Vec<u8>,
+    pub did: DID,
+    pub parameters: Option<URLParameters>,
+}
+
+#[derive(Clone, Default, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
+pub struct URLParameters {
     pub path: Option<Vec<u8>>,
     pub fragment: Option<Vec<u8>>,
     pub service: Option<String>,
@@ -61,61 +65,63 @@ impl Display for URL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut ret = String::from("did:");
 
-        ret += &url_encoded(&self.name);
-        ret += &(":".to_string() + &method_id_encoded(&self.id));
+        ret += &url_encoded(&self.did.name);
+        ret += &(":".to_string() + &method_id_encoded(&self.did.id));
 
-        if let Some(path) = &self.path {
-            ret += &("/".to_string() + &url_encoded(path));
-        }
-
-        if self.service.is_some()
-            || self.relative_ref.is_some()
-            || self.version_id.is_some()
-            || self.version_time.is_some()
-            || self.hash_link.is_some()
-            || self.extra_query.is_some()
-        {
-            ret += "?";
-
-            if let Some(service) = &self.service {
-                ret += &("service=".to_string() + service);
-                ret += "&";
+        if let Some(params) = &self.parameters {
+            if let Some(path) = &params.path {
+                ret += &("/".to_string() + &url_encoded(path));
             }
 
-            if let Some(relative_ref) = &self.relative_ref {
-                ret += &("relativeRef=".to_string() + &url_encoded(relative_ref));
-                ret += "&";
-            }
+            if params.service.is_some()
+                || params.relative_ref.is_some()
+                || params.version_id.is_some()
+                || params.version_time.is_some()
+                || params.hash_link.is_some()
+                || params.extra_query.is_some()
+            {
+                ret += "?";
 
-            if let Some(version_id) = &self.version_id {
-                ret += &("versionId=".to_string() + version_id);
-                ret += "&";
-            }
-
-            if let Some(version_time) = &self.version_time {
-                ret += &("versionTime=".to_string() + &version_time.to_string());
-                ret += "&";
-            }
-
-            if let Some(hash_link) = &self.hash_link {
-                ret += &("hl=".to_string() + hash_link);
-                ret += "&";
-            }
-
-            if let Some(extra_query) = &self.extra_query {
-                for (key, value) in extra_query.iter() {
-                    ret += &format!("{}={}&", url_encoded(key), url_encoded(value));
+                if let Some(service) = &params.service {
+                    ret += &("service=".to_string() + service);
+                    ret += "&";
                 }
+
+                if let Some(relative_ref) = &params.relative_ref {
+                    ret += &("relativeRef=".to_string() + &url_encoded(relative_ref));
+                    ret += "&";
+                }
+
+                if let Some(version_id) = &params.version_id {
+                    ret += &("versionId=".to_string() + version_id);
+                    ret += "&";
+                }
+
+                if let Some(version_time) = &params.version_time {
+                    ret += &("versionTime=".to_string() + &version_time.to_string());
+                    ret += "&";
+                }
+
+                if let Some(hash_link) = &params.hash_link {
+                    ret += &("hl=".to_string() + hash_link);
+                    ret += "&";
+                }
+
+                if let Some(extra_query) = &params.extra_query {
+                    for (key, value) in extra_query.iter() {
+                        ret += &format!("{}={}&", url_encoded(key), url_encoded(value));
+                    }
+                }
+
+                ret = match ret.strip_suffix('&') {
+                    Some(ret) => ret.to_string(),
+                    None => ret,
+                };
             }
 
-            ret = match ret.strip_suffix('&') {
-                Some(ret) => ret.to_string(),
-                None => ret,
-            };
-        }
-
-        if let Some(fragment) = &self.fragment {
-            ret += &("#".to_string() + &url_encoded(fragment));
+            if let Some(fragment) = &params.fragment {
+                ret += &("#".to_string() + &url_encoded(fragment));
+            }
         }
 
         f.write_str(&ret)
@@ -167,17 +173,19 @@ impl URL {
         }
 
         match s.chars().next().unwrap() {
-            '/' => Self::match_path(&self.name, &self.id, &s.as_bytes()[1..]),
-            '?' => Self::match_query(&self.name, &self.id, None, &s.as_bytes()[1..]),
-            '#' => Self::match_fragment(&self.name, &self.id, None, None, &s.as_bytes()[1..]),
+            '/' => Self::match_path(&self.did.name, &self.did.id, &s.as_bytes()[1..]),
+            '?' => Self::match_query(&self.did.name, &self.did.id, None, &s.as_bytes()[1..]),
+            '#' => {
+                Self::match_fragment(&self.did.name, &self.did.id, None, None, &s.as_bytes()[1..])
+            }
             _ => Err(anyhow!("DID URL is not relative or is malformed")),
         }
     }
 
     pub fn to_did(&self) -> DID {
         DID {
-            name: self.name.clone(),
-            id: self.id.clone(),
+            name: self.did.name.clone(),
+            id: self.did.id.clone(),
         }
     }
 
@@ -205,8 +213,10 @@ impl URL {
                 validate_method_name(method_name)?;
 
                 Ok(URL {
-                    name: url_decoded(method_name),
-                    id: url_decoded(right.as_bytes()),
+                    did: DID {
+                        name: url_decoded(method_name),
+                        id: url_decoded(right.as_bytes()),
+                    },
                     ..Default::default()
                 })
             }
@@ -241,10 +251,14 @@ impl URL {
                         validate_method_name(method_name)?;
 
                         Ok(URL {
-                            name: url_decoded(method_name),
-                            id: url_decoded(method_id),
-                            path: Some(url_decoded(left)),
-                            ..Default::default()
+                            did: DID {
+                                name: url_decoded(method_name),
+                                id: url_decoded(method_id),
+                            },
+                            parameters: Some(URLParameters {
+                                path: Some(url_decoded(left)),
+                                ..Default::default()
+                            }),
                         })
                     }
                 },
@@ -262,10 +276,14 @@ impl URL {
                     validate_method_name(method_name)?;
 
                     Ok(URL {
-                        name: url_decoded(method_name),
-                        id: url_decoded(method_id),
-                        path: Some(url_decoded(left)),
-                        ..Default::default()
+                        did: DID {
+                            name: url_decoded(method_name),
+                            id: url_decoded(method_id),
+                        },
+                        parameters: Some(URLParameters {
+                            path: Some(url_decoded(left)),
+                            ..Default::default()
+                        }),
                     })
                 }
             }
@@ -283,11 +301,15 @@ impl URL {
         validate_method_name(method_name)?;
 
         let mut url = URL {
-            name: url_decoded(method_name),
-            id: url_decoded(method_id),
-            fragment: Some(url_decoded(fragment)),
-            path: path.map(url_decoded),
-            ..Default::default()
+            did: DID {
+                name: url_decoded(method_name),
+                id: url_decoded(method_id),
+            },
+            parameters: Some(URLParameters {
+                fragment: Some(url_decoded(fragment)),
+                path: path.map(url_decoded),
+                ..Default::default()
+            }),
         };
 
         if query.is_some() {
@@ -318,10 +340,14 @@ impl URL {
                 validate_method_name(method_name)?;
 
                 let mut url = URL {
-                    name: url_decoded(method_name),
-                    id: url_decoded(method_id),
-                    path: path.map(url_decoded),
-                    ..Default::default()
+                    did: DID {
+                        name: url_decoded(method_name),
+                        id: url_decoded(method_id),
+                    },
+                    parameters: Some(URLParameters {
+                        path: path.map(url_decoded),
+                        ..Default::default()
+                    }),
                 };
 
                 url.parse_query(query)?;
@@ -337,22 +363,29 @@ impl URL {
         right: &[u8],
         extra_query: &mut BTreeMap<Vec<u8>, Vec<u8>>,
     ) -> Result<(), anyhow::Error> {
+        if self.parameters.is_none() {
+            self.parameters = Some(Default::default());
+        }
+
+        let mut params = self.parameters.clone().unwrap();
         let item = String::from_utf8(left.to_vec())?;
 
         match item.as_str() {
-            "service" => self.service = Some(String::from_utf8(right.to_vec())?),
+            "service" => params.service = Some(String::from_utf8(right.to_vec())?),
             "relativeRef" => {
-                self.relative_ref = Some(url_decoded(right));
+                params.relative_ref = Some(url_decoded(right));
             }
-            "versionId" => self.version_id = Some(String::from_utf8(right.to_vec())?),
+            "versionId" => params.version_id = Some(String::from_utf8(right.to_vec())?),
             "versionTime" => {
-                self.version_time = Some(VersionTime::parse(&String::from_utf8(right.to_vec())?)?)
+                params.version_time = Some(VersionTime::parse(&String::from_utf8(right.to_vec())?)?)
             }
-            "hl" => self.hash_link = Some(String::from_utf8(right.to_vec())?),
+            "hl" => params.hash_link = Some(String::from_utf8(right.to_vec())?),
             _ => {
                 extra_query.insert(url_decoded(left), url_decoded(right));
             }
         }
+
+        self.parameters = Some(params);
 
         Ok(())
     }
@@ -394,7 +427,13 @@ impl URL {
         }
 
         if !extra_query.is_empty() {
-            self.extra_query = Some(extra_query.clone());
+            if self.parameters.is_none() {
+                self.parameters = Some(Default::default());
+            }
+
+            let mut params = self.parameters.clone().unwrap();
+            params.extra_query = Some(extra_query.clone());
+            self.parameters = Some(params);
         }
 
         Ok(())
@@ -405,10 +444,13 @@ mod tests {
     #[test]
     fn test_join() {
         use super::URL;
+        use crate::did::DID;
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
             ..Default::default()
         };
 
@@ -439,62 +481,85 @@ mod tests {
 
     #[test]
     fn test_to_string() {
-        use super::URL;
+        use super::{URLParameters, URL};
+        use crate::did::DID;
         use crate::time::VersionTime;
         use std::collections::BTreeMap;
         use time::OffsetDateTime;
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
             ..Default::default()
         };
 
         assert_eq!(url.to_string(), "did:abcdef:123456");
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            path: Some("path".into()),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                path: Some("path".into()),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(url.to_string(), "did:abcdef:123456/path");
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            fragment: Some("fragment".into()),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                fragment: Some("fragment".into()),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(url.to_string(), "did:abcdef:123456#fragment");
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            path: Some("path".into()),
-            fragment: Some("fragment".into()),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                path: Some("path".into()),
+                fragment: Some("fragment".into()),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(url.to_string(), "did:abcdef:123456/path#fragment");
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            service: Some("frobnik".into()),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                service: Some("frobnik".into()),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(url.to_string(), "did:abcdef:123456?service=frobnik");
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            service: Some("frobnik".into()),
-            relative_ref: Some("/ref".into()),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                service: Some("frobnik".into()),
+                relative_ref: Some("/ref".into()),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(
@@ -503,12 +568,16 @@ mod tests {
         );
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            service: Some("frobnik".into()),
-            relative_ref: Some("/ref".into()),
-            version_id: Some("1".into()),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                service: Some("frobnik".into()),
+                relative_ref: Some("/ref".into()),
+                version_id: Some("1".into()),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(
@@ -517,13 +586,17 @@ mod tests {
         );
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            service: Some("frobnik".into()),
-            relative_ref: Some("/ref".into()),
-            version_id: Some("1".into()),
-            hash_link: Some("myhash".into()),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                service: Some("frobnik".into()),
+                relative_ref: Some("/ref".into()),
+                version_id: Some("1".into()),
+                hash_link: Some("myhash".into()),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(
@@ -535,14 +608,18 @@ mod tests {
         map.insert("extra".into(), "parameter".into());
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            service: Some("frobnik".into()),
-            relative_ref: Some("/ref".into()),
-            version_id: Some("1".into()),
-            hash_link: Some("myhash".into()),
-            extra_query: Some(map),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                service: Some("frobnik".into()),
+                relative_ref: Some("/ref".into()),
+                version_id: Some("1".into()),
+                hash_link: Some("myhash".into()),
+                extra_query: Some(map),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(
@@ -554,14 +631,18 @@ mod tests {
         map.insert("extra".into(), "".into());
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            service: Some("frobnik".into()),
-            relative_ref: Some("/ref".into()),
-            version_id: Some("1".into()),
-            hash_link: Some("myhash".into()),
-            extra_query: Some(map),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                service: Some("frobnik".into()),
+                relative_ref: Some("/ref".into()),
+                version_id: Some("1".into()),
+                hash_link: Some("myhash".into()),
+                extra_query: Some(map),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(
@@ -573,10 +654,14 @@ mod tests {
         map.insert("extra".into(), "parameter".into());
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            extra_query: Some(map),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                extra_query: Some(map),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(url.to_string(), "did:abcdef:123456?extra=parameter",);
@@ -585,24 +670,32 @@ mod tests {
         map.insert("extra".into(), "".into());
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            extra_query: Some(map),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                extra_query: Some(map),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(url.to_string(), "did:abcdef:123456?extra=",);
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            path: Some("path".into()),
-            fragment: Some("fragment".into()),
-            service: Some("frobnik".into()),
-            relative_ref: Some("/ref".into()),
-            version_id: Some("1".into()),
-            hash_link: Some("myhash".into()),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                path: Some("path".into()),
+                fragment: Some("fragment".into()),
+                service: Some("frobnik".into()),
+                relative_ref: Some("/ref".into()),
+                version_id: Some("1".into()),
+                hash_link: Some("myhash".into()),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(
@@ -611,17 +704,21 @@ mod tests {
         );
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456".into(),
-            path: Some("path".into()),
-            fragment: Some("fragment".into()),
-            service: Some("frobnik".into()),
-            relative_ref: Some("/ref".into()),
-            version_id: Some("1".into()),
-            version_time: Some(VersionTime(
-                OffsetDateTime::from_unix_timestamp(260690400).unwrap(),
-            )),
-            ..Default::default()
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456".into(),
+            },
+            parameters: Some(URLParameters {
+                path: Some("path".into()),
+                fragment: Some("fragment".into()),
+                service: Some("frobnik".into()),
+                relative_ref: Some("/ref".into()),
+                version_id: Some("1".into()),
+                version_time: Some(VersionTime(
+                    OffsetDateTime::from_unix_timestamp(260690400).unwrap(),
+                )),
+                ..Default::default()
+            }),
         };
 
         assert_eq!(
@@ -630,8 +727,10 @@ mod tests {
         );
 
         let url = URL {
-            name: "abcdef".into(),
-            id: "123456:mumble:foo".into(),
+            did: DID {
+                name: "abcdef".into(),
+                id: "123456:mumble:foo".into(),
+            },
             ..Default::default()
         };
 
@@ -640,7 +739,8 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        use super::URL;
+        use super::{URLParameters, URL};
+        use crate::did::DID;
         use crate::time::VersionTime;
         use std::collections::BTreeMap;
         use time::OffsetDateTime;
@@ -656,8 +756,10 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
                 ..Default::default()
             }
         );
@@ -666,10 +768,14 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                path: Some("path".into()),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    path: Some("path".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -677,10 +783,14 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                fragment: Some("fragment".into()),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    fragment: Some("fragment".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -688,11 +798,15 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                path: Some("path".into()),
-                fragment: Some("fragment".into()),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    path: Some("path".into()),
+                    fragment: Some("fragment".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -700,10 +814,14 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                service: Some("frobnik".into()),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    service: Some("frobnik".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -711,11 +829,15 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                service: Some("frobnik".into()),
-                relative_ref: Some("/ref".into()),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    service: Some("frobnik".into()),
+                    relative_ref: Some("/ref".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -724,12 +846,16 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                service: Some("frobnik".into()),
-                relative_ref: Some("/ref".into()),
-                version_id: Some("1".into()),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    service: Some("frobnik".into()),
+                    relative_ref: Some("/ref".into()),
+                    version_id: Some("1".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -740,13 +866,17 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                service: Some("frobnik".into()),
-                relative_ref: Some("/ref".into()),
-                version_id: Some("1".into()),
-                hash_link: Some("myhash".into()),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    service: Some("frobnik".into()),
+                    relative_ref: Some("/ref".into()),
+                    version_id: Some("1".into()),
+                    hash_link: Some("myhash".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -761,14 +891,18 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                service: Some("frobnik".into()),
-                relative_ref: Some("/ref".into()),
-                version_id: Some("1".into()),
-                hash_link: Some("myhash".into()),
-                extra_query: Some(map),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    service: Some("frobnik".into()),
+                    relative_ref: Some("/ref".into()),
+                    version_id: Some("1".into()),
+                    hash_link: Some("myhash".into()),
+                    extra_query: Some(map),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -783,14 +917,18 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                service: Some("frobnik".into()),
-                relative_ref: Some("/ref".into()),
-                version_id: Some("1".into()),
-                hash_link: Some("myhash".into()),
-                extra_query: Some(map),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    service: Some("frobnik".into()),
+                    relative_ref: Some("/ref".into()),
+                    version_id: Some("1".into()),
+                    hash_link: Some("myhash".into()),
+                    extra_query: Some(map),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -802,10 +940,14 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                extra_query: Some(map),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    extra_query: Some(map),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -817,10 +959,14 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                extra_query: Some(map),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    extra_query: Some(map),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -831,15 +977,19 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                path: Some("path".into()),
-                fragment: Some("fragment".into()),
-                service: Some("frobnik".into()),
-                relative_ref: Some("/ref".into()),
-                version_id: Some("1".into()),
-                hash_link: Some("myhash".into()),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    path: Some("path".into()),
+                    fragment: Some("fragment".into()),
+                    service: Some("frobnik".into()),
+                    relative_ref: Some("/ref".into()),
+                    version_id: Some("1".into()),
+                    hash_link: Some("myhash".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -856,18 +1006,22 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456".into(),
-                path: Some("path".into()),
-                fragment: Some("fragment".into()),
-                service: Some("frobnik".into()),
-                relative_ref: Some("/ref".into()),
-                version_id: Some("1".into()),
-                hash_link: Some("myhash".into()),
-                version_time: Some(VersionTime(
-                    OffsetDateTime::from_unix_timestamp(260690400).unwrap()
-                )),
-                ..Default::default()
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456".into(),
+                },
+                parameters: Some(URLParameters {
+                    path: Some("path".into()),
+                    fragment: Some("fragment".into()),
+                    service: Some("frobnik".into()),
+                    relative_ref: Some("/ref".into()),
+                    version_id: Some("1".into()),
+                    hash_link: Some("myhash".into()),
+                    version_time: Some(VersionTime(
+                        OffsetDateTime::from_unix_timestamp(260690400).unwrap()
+                    )),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -875,8 +1029,10 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "abcdef".into(),
-                id: "123456:mumble:foo".into(),
+                did: DID {
+                    name: "abcdef".into(),
+                    id: "123456:mumble:foo".into(),
+                },
                 ..Default::default()
             }
         );
@@ -887,12 +1043,16 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "example".into(),
-                id: "123".into(),
-                service: Some("agent".into()),
-                relative_ref: Some("/credentials".into()),
-                fragment: Some("degree".into()),
-                ..Default::default()
+                did: DID {
+                    name: "example".into(),
+                    id: "123".into(),
+                },
+                parameters: Some(URLParameters {
+                    service: Some("agent".into()),
+                    relative_ref: Some("/credentials".into()),
+                    fragment: Some("degree".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -900,10 +1060,14 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "example".into(),
-                id: "123".into(),
-                fragment: Some("/degree".into()),
-                ..Default::default()
+                did: DID {
+                    name: "example".into(),
+                    id: "123".into(),
+                },
+                parameters: Some(URLParameters {
+                    fragment: Some("/degree".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -911,10 +1075,14 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "example".into(),
-                id: "123".into(),
-                fragment: Some("?degree".into()),
-                ..Default::default()
+                did: DID {
+                    name: "example".into(),
+                    id: "123".into(),
+                },
+                parameters: Some(URLParameters {
+                    fragment: Some("?degree".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -922,11 +1090,15 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "example".into(),
-                id: "123".into(),
-                path: Some("path".into()),
-                fragment: Some("?degree".into()),
-                ..Default::default()
+                did: DID {
+                    name: "example".into(),
+                    id: "123".into(),
+                },
+                parameters: Some(URLParameters {
+                    path: Some("path".into()),
+                    fragment: Some("?degree".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -934,10 +1106,14 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "example".into(),
-                id: "123".into(),
-                fragment: Some("?/degree".into()),
-                ..Default::default()
+                did: DID {
+                    name: "example".into(),
+                    id: "123".into(),
+                },
+                parameters: Some(URLParameters {
+                    fragment: Some("?/degree".into()),
+                    ..Default::default()
+                }),
             }
         );
 
@@ -945,24 +1121,31 @@ mod tests {
         assert_eq!(
             url,
             URL {
-                name: "123456".into(),
-                id: "123".into(),
-                fragment: Some("?/degree".into()),
-                ..Default::default()
+                did: DID {
+                    name: "123456".into(),
+                    id: "123".into(),
+                },
+                parameters: Some(URLParameters {
+                    fragment: Some("?/degree".into()),
+                    ..Default::default()
+                }),
             }
         );
     }
 
     #[test]
     fn test_serde() {
-        use super::URL;
+        use super::{URLParameters, URL};
+        use crate::did::DID;
 
         let url: [URL; 1] = serde_json::from_str(r#"["did:123456:123"]"#).unwrap();
         assert_eq!(
             url[0],
             URL {
-                name: "123456".into(),
-                id: "123".into(),
+                did: DID {
+                    name: "123456".into(),
+                    id: "123".into(),
+                },
                 ..Default::default()
             }
         );
@@ -979,13 +1162,17 @@ mod tests {
         assert_eq!(
             url[0],
             URL {
-                name: "123456".into(),
-                id: "123".into(),
-                path: Some("path".into()),
-                service: Some("foo".into()),
-                relative_ref: Some("/ref".into()),
-                fragment: Some("fragment".into()),
-                ..Default::default()
+                did: DID {
+                    name: "123456".into(),
+                    id: "123".into(),
+                },
+                parameters: Some(URLParameters {
+                    path: Some("path".into()),
+                    service: Some("foo".into()),
+                    relative_ref: Some("/ref".into()),
+                    fragment: Some("fragment".into()),
+                    ..Default::default()
+                }),
             }
         );
 

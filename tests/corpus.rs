@@ -105,6 +105,13 @@ mod util {
         }
     }
 
+    // pub fn generate_verification_method(did: DID, method_name: Option<&str>) -> VerificationMethod {
+    //     VerificationMethod {
+    //         id:
+    //
+    //     }
+    // }
+
     pub fn create_random_document(template: Option<Document>) -> Result<Document, anyhow::Error> {
         let mut doc = match template {
             Some(template) => template.clone(),
