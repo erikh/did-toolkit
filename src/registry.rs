@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::{
     did::DID,
     document::{Document, VerificationMethod},
@@ -190,9 +189,13 @@ impl Registry {
     }
 
     fn cache_document(&mut self, url: Url) -> Result<Document, anyhow::Error> {
-        let doc = reqwest::blocking::get(url)?.json::<Document>()?;
-        self.insert(doc.clone())?;
-        Ok(doc)
+        if self.remote_cache {
+            let doc = reqwest::blocking::get(url)?.json::<Document>()?;
+            self.insert(doc.clone())?;
+            Ok(doc)
+        } else {
+            Err(anyhow!("Remote caching of documents is disabled"))
+        }
     }
 }
 

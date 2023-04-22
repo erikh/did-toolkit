@@ -188,7 +188,6 @@ impl VerificationMethods {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
     #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
