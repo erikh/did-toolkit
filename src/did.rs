@@ -1,4 +1,7 @@
-use crate::string::{method_id_encoded, url_encoded, validate_method_name};
+use crate::{
+    string::{method_id_encoded, url_encoded, validate_method_name},
+    url::{URLParameters, URL},
+};
 use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::fmt::Display;
@@ -72,13 +75,12 @@ impl DID {
         }
     }
 
-    // FIXME
-    // pub fn join(&self, mut url: URL) -> URL {
-    //     url.id = self.id.clone();
-    //     url.name = self.name.clone();
-    //
-    //     url
-    // }
+    pub fn join(&self, parameters: URLParameters) -> URL {
+        URL {
+            did: self.clone(),
+            parameters: Some(parameters),
+        }
+    }
 }
 
 mod tests {
