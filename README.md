@@ -18,9 +18,10 @@ specs I hope will follow.
 -   DID URL (different from DID)
     -   Parsing absolute URLs, and mapping relative URLs from absolute ones
     -   Generation from pre-populated struct
--   DID Document (de)serialization from JSON
+-   DID Document serialization from JSON
     -   Preliminary support for [registry-supported types](https://www.w3.org/TR/did-spec-registries/)
         -   Types with "issues" were elided for implementation safety's sake
+    -   Capable of generating ECDSA keys with the P256 curve. More coming here.
 -   Preliminary, basic, in-memory Registry. Provides:
     -   mapping of documents to DIDs
     -   cross-referencing of alsoKnownAs in complimentary DIDs as equivalent
@@ -35,6 +36,10 @@ specs I hope will follow.
 
 ### Regarding support in general:
 
+-   Deserialization is coming! It's a bit tricky with the DID spec's type
+    switching in many fields of the document (between string, map, set, etc) in a
+    statically typed language. Serde can handle it, it just takes additional
+    effort.
 -   Consumption of formats:
     -   JSON-LD support is _not_ planned due to the existing JSON-LD parser
         implementations requiring non-standard JSON libraries that don't
