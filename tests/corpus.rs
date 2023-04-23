@@ -10,7 +10,7 @@
 //     let reg = create_identities(10, 5).unwrap();
 //     create_files(PathBuf::from(dir), &reg).unwrap();
 // }
-
+//
 mod util {
     use std::{collections::BTreeSet, path::PathBuf};
 
@@ -41,29 +41,7 @@ mod util {
             }
             doc.verification_method = Some(set);
 
-            let attrs = &mut [
-                &mut doc.authentication,
-                &mut doc.assertion_method,
-                &mut doc.key_agreement,
-                &mut doc.capability_invocation,
-                &mut doc.capability_delegation,
-            ];
-
-            for x in 0..attrs.len() {
-                let mut set = BTreeSet::new();
-                let path = &mut [0; 10];
-                path.try_fill(&mut rand::thread_rng())?;
-                let path = Some(path.to_vec());
-                for num in 0..(rand::random::<usize>() % complexity) {
-                    set.insert(Either::Left(generate_verification_method(
-                        doc.id.clone(),
-                        path.clone(),
-                        num,
-                    )));
-                }
-
-                *attrs[x] = Some(VerificationMethods(set));
-            }
+            link_vm_attrs(&mut doc, complexity)?;
 
             if let Err(e) = reg.insert(doc.clone()) {
                 eprintln!("Could not generate document {}; skipping: {}", doc.id, e);
@@ -83,6 +61,34 @@ mod util {
             let filename = dir.join(&format!("{}.json", num));
             std::fs::write(filename, &json!(doc).to_string())?;
             num += 1;
+        }
+
+        Ok(())
+    }
+
+    pub fn link_vm_attrs(doc: &mut Document, complexity: usize) -> Result<(), anyhow::Error> {
+        let attrs = &mut [
+            &mut doc.authentication,
+            &mut doc.assertion_method,
+            &mut doc.key_agreement,
+            &mut doc.capability_invocation,
+            &mut doc.capability_delegation,
+        ];
+
+        for x in 0..attrs.len() {
+            let mut set = BTreeSet::new();
+            let path = &mut [0; 10];
+            path.try_fill(&mut rand::thread_rng())?;
+            let path = Some(path.to_vec());
+            for num in 0..(rand::random::<usize>() % complexity) {
+                set.insert(Either::Left(generate_verification_method(
+                    doc.id.clone(),
+                    path.clone(),
+                    num,
+                )));
+            }
+
+            *attrs[x] = Some(VerificationMethods(set));
         }
 
         Ok(())
