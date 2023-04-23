@@ -17,6 +17,12 @@ pub enum VerificationMethodType {
     VerifiableCondition2021,
 }
 
+impl Default for VerificationMethodType {
+    fn default() -> Self {
+        VerificationMethodType::JWK2020
+    }
+}
+
 impl Display for VerificationMethodType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
@@ -32,7 +38,7 @@ impl Display for VerificationMethodType {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct VerificationMethod {
     pub id: URL,
     pub controller: DID,

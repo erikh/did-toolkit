@@ -13,7 +13,12 @@
 mod util {
     use std::{collections::BTreeSet, path::PathBuf};
 
-    use did_toolkit::{did::DID, document::Document, registry::Registry};
+    use did_toolkit::{
+        did::DID,
+        document::{Document, VerificationMethod},
+        registry::Registry,
+        url::URLParameters,
+    };
     use either::Either;
     use rand::Fill;
     use serde_json::json;
@@ -105,12 +110,17 @@ mod util {
         }
     }
 
-    // pub fn generate_verification_method(did: DID, method_name: Option<&str>) -> VerificationMethod {
-    //     VerificationMethod {
-    //         id:
-    //
-    //     }
-    // }
+    pub fn generate_verification_method(did: DID, num: usize) -> VerificationMethod {
+        VerificationMethod {
+            id: did.join(URLParameters {
+                fragment: Some(format!("method-{}", num).as_bytes().to_vec()),
+                ..Default::default()
+            }),
+            controller: did.clone(),
+            // TODO generate a keypair
+            ..Default::default()
+        }
+    }
 
     pub fn create_random_document(template: Option<Document>) -> Result<Document, anyhow::Error> {
         let mut doc = match template {
