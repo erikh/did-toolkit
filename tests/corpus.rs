@@ -39,7 +39,6 @@ mod util {
             for num in 0..(rand::random::<usize>() % complexity) {
                 set.insert(generate_verification_method(doc.id.clone(), num));
             }
-
             doc.verification_method = Some(set);
 
             if let Err(e) = reg.insert(doc.clone()) {
