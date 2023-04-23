@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-
+//
 // use std::path::PathBuf;
 // use util::create_files;
 //
@@ -9,13 +9,14 @@
 //     std::fs::create_dir_all(dir.clone()).unwrap();
 //     create_files(10, PathBuf::from(dir), 5).unwrap();
 // }
-
+//
 mod util {
     use std::{collections::BTreeSet, path::PathBuf};
 
     use did_toolkit::{
         did::DID,
         document::{Document, VerificationMethod},
+        jwk::JWK,
         registry::Registry,
         url::URLParameters,
     };
@@ -32,7 +33,15 @@ mod util {
         let mut reg: Registry = Default::default();
 
         for _ in 0..count {
-            let doc = create_random_document(None)?;
+            let mut doc = create_random_document(None)?;
+
+            let mut set = BTreeSet::new();
+            for num in 0..complexity {
+                set.insert(generate_verification_method(doc.id.clone(), num));
+            }
+
+            doc.verification_method = Some(set);
+
             if let Err(e) = reg.insert(doc.clone()) {
                 eprintln!("Could not generate document {}; skipping: {}", doc.id, e);
             }
@@ -117,6 +126,7 @@ mod util {
                 ..Default::default()
             }),
             controller: did.clone(),
+            public_key_jwk: Some(JWK::new()),
             // TODO generate a keypair
             ..Default::default()
         }
