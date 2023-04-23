@@ -96,8 +96,8 @@ pub enum ServiceType {
 impl Display for ServiceType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            Self::CredentialRegistry => "CredentialRegistry",
             Self::LinkedDomains => "LinkedDomains",
+            Self::CredentialRegistry => "CredentialRegistry",
         })
     }
 }
