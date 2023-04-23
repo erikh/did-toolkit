@@ -21,7 +21,7 @@ specs I hope will follow.
 -   DID Document serialization from JSON
     -   Preliminary support for [registry-supported types](https://www.w3.org/TR/did-spec-registries/)
         -   Types with "issues" were elided for implementation safety's sake
-    -   Capable of generating ECDSA keys with the P256 curve. More coming here.
+    -   Capable of generating JWK ECDSA keys with the P256 curve. More coming here.
 -   Preliminary, basic, in-memory Registry. Provides:
     -   mapping of documents to DIDs
     -   cross-referencing of alsoKnownAs in complimentary DIDs as equivalent
