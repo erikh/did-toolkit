@@ -9,7 +9,7 @@
 //     std::fs::create_dir_all(dir.clone()).unwrap();
 //     create_files(10, PathBuf::from(dir), 5).unwrap();
 // }
-//
+
 mod util {
     use std::{collections::BTreeSet, path::PathBuf};
 
@@ -36,7 +36,7 @@ mod util {
             let mut doc = create_random_document(None)?;
 
             let mut set = BTreeSet::new();
-            for num in 0..complexity {
+            for num in 0..(rand::random::<usize>() % complexity) {
                 set.insert(generate_verification_method(doc.id.clone(), num));
             }
 
