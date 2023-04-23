@@ -81,11 +81,18 @@ mod util {
             path.try_fill(&mut rand::thread_rng())?;
             let path = Some(path.to_vec());
             for num in 0..(rand::random::<usize>() % complexity) {
-                set.insert(Either::Left(generate_verification_method(
-                    doc.id.clone(),
-                    path.clone(),
-                    num,
-                )));
+                if rand::random::<bool>() {
+                    let vm = doc.verification_method.clone().unwrap();
+                    let mut iter = vm.iter();
+                    let item = iter.nth(rand::random::<usize>() % iter.len()).unwrap();
+                    set.insert(Either::Right(item.id.clone()));
+                } else {
+                    set.insert(Either::Left(generate_verification_method(
+                        doc.id.clone(),
+                        path.clone(),
+                        num,
+                    )));
+                }
             }
 
             *attrs[x] = Some(VerificationMethods(set));
