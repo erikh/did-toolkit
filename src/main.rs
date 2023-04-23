@@ -1,15 +1,13 @@
-#![allow(dead_code)]
-//
-// use std::path::PathBuf;
-// use util::{create_files, create_identities};
-//
-// #[test]
-// fn test_generate() {
-//     let dir = PathBuf::from("/tmp/test");
-//     std::fs::create_dir_all(dir.clone()).unwrap();
-//     let reg = create_identities(10, 5).unwrap();
-//     create_files(PathBuf::from(dir), &reg).unwrap();
-// }
+use std::path::PathBuf;
+use util::{create_files, create_identities};
+
+fn main() -> Result<(), anyhow::Error> {
+    let dir = PathBuf::from("/tmp/test");
+    std::fs::create_dir_all(dir.clone()).unwrap();
+    let reg = create_identities(10, 5).unwrap();
+    create_files(PathBuf::from(dir), &reg).unwrap();
+    Ok(())
+}
 //
 mod util {
     use std::{collections::BTreeSet, path::PathBuf};
@@ -81,9 +79,9 @@ mod util {
             path.try_fill(&mut rand::thread_rng())?;
             let path = Some(path.to_vec());
             for num in 0..(rand::random::<usize>() % complexity) {
-                if rand::random::<bool>() {
-                    let vm = doc.verification_method.clone().unwrap();
-                    let mut iter = vm.iter();
+                let vm = doc.verification_method.clone().unwrap();
+                let mut iter = vm.iter();
+                if rand::random::<bool>() && iter.len() > 0 {
                     let item = iter.nth(rand::random::<usize>() % iter.len()).unwrap();
                     set.insert(Either::Right(item.id.clone()));
                 } else {
