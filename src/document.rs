@@ -139,7 +139,7 @@ impl ServiceEndpoint {
 }
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
-pub struct VerificationMethods(BTreeSet<Either<VerificationMethod, URL>>);
+pub struct VerificationMethods(pub BTreeSet<Either<VerificationMethod, URL>>);
 
 impl Serialize for VerificationMethods {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

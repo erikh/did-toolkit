@@ -1,13 +1,14 @@
 #![allow(dead_code)]
-//
+
 // use std::path::PathBuf;
-// use util::create_files;
+// use util::{create_files, create_identities};
 //
 // #[test]
 // fn test_generate() {
 //     let dir = PathBuf::from("/tmp/test");
 //     std::fs::create_dir_all(dir.clone()).unwrap();
-//     create_files(10, PathBuf::from(dir), 5).unwrap();
+//     let reg = create_identities(10, 5).unwrap();
+//     create_files(PathBuf::from(dir), &reg).unwrap();
 // }
 
 mod util {
@@ -15,7 +16,7 @@ mod util {
 
     use did_toolkit::{
         did::DID,
-        document::{Document, VerificationMethod},
+        document::{Document, VerificationMethod, VerificationMethods},
         jwk::JWK,
         registry::Registry,
         url::URLParameters,
@@ -25,11 +26,10 @@ mod util {
     use serde_json::json;
     //use tempfile::tempdir;
 
-    pub fn create_files(
+    pub fn create_identities<'a>(
         count: usize,
-        dir: PathBuf,
         complexity: usize,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<Registry, anyhow::Error> {
         let mut reg: Registry = Default::default();
 
         for _ in 0..count {
@@ -37,9 +37,30 @@ mod util {
 
             let mut set = BTreeSet::new();
             for num in 0..(rand::random::<usize>() % complexity) {
-                set.insert(generate_verification_method(doc.id.clone(), num));
+                set.insert(generate_verification_method(doc.id.clone(), None, num));
             }
             doc.verification_method = Some(set);
+
+            let attrs = &mut [
+                &mut doc.authentication,
+                &mut doc.assertion_method,
+                &mut doc.key_agreement,
+                &mut doc.capability_invocation,
+                &mut doc.capability_delegation,
+            ];
+
+            for x in 0..attrs.len() {
+                let mut set = BTreeSet::new();
+                for num in 0..(rand::random::<usize>() % complexity) {
+                    set.insert(Either::Left(generate_verification_method(
+                        doc.id.clone(),
+                        Some("auth".as_bytes().to_vec()),
+                        num,
+                    )));
+                }
+
+                *attrs[x] = Some(VerificationMethods(set));
+            }
 
             if let Err(e) = reg.insert(doc.clone()) {
                 eprintln!("Could not generate document {}; skipping: {}", doc.id, e);
@@ -49,6 +70,10 @@ mod util {
         link_documents_aka(&mut reg, complexity);
         link_documents_controller(&mut reg, complexity);
 
+        Ok(reg)
+    }
+
+    pub fn create_files(dir: PathBuf, reg: &Registry) -> Result<(), anyhow::Error> {
         let mut num = 0;
 
         for (_, doc) in reg.iter() {
@@ -118,9 +143,14 @@ mod util {
         }
     }
 
-    pub fn generate_verification_method(did: DID, num: usize) -> VerificationMethod {
+    pub fn generate_verification_method(
+        did: DID,
+        path: Option<Vec<u8>>,
+        num: usize,
+    ) -> VerificationMethod {
         VerificationMethod {
             id: did.join(URLParameters {
+                path,
                 fragment: Some(format!("method-{}", num).as_bytes().to_vec()),
                 ..Default::default()
             }),
