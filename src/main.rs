@@ -1,11 +1,37 @@
+use clap::Parser;
 use std::path::PathBuf;
 use util::{create_files, create_identities};
 
+#[derive(Parser, Debug)]
+#[command(
+    author = "Erik Hollensbe <erik+github@hollensbe.org",
+    about = "Generate a tree of documents for testing DID parser compliance"
+)]
+struct Args {
+    #[arg(help = "Path to generate files to")]
+    path: PathBuf,
+    #[arg(
+        help = "Number of identities to create",
+        short = 'c',
+        long = "count",
+        default_value = "10"
+    )]
+    count: usize,
+    #[arg(
+        help = "Complexity factor: used to calculate inter-linking values and other forms of cross-referencing. Set to less than --count",
+        short = 'f',
+        long = "complexity-factor",
+        default_value = "5"
+    )]
+    complexity_factor: usize,
+}
+
 fn main() -> Result<(), anyhow::Error> {
-    let dir = PathBuf::from("/tmp/test");
-    std::fs::create_dir_all(dir.clone()).unwrap();
-    let reg = create_identities(10, 5).unwrap();
-    create_files(PathBuf::from(dir), &reg).unwrap();
+    let args = Args::parse();
+
+    std::fs::create_dir_all(args.path.clone()).unwrap();
+    let reg = create_identities(args.count, args.complexity_factor).unwrap();
+    create_files(args.path, &reg).unwrap();
     Ok(())
 }
 //
