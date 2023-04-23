@@ -1,15 +1,15 @@
 #![allow(dead_code)]
 
-// use std::path::PathBuf;
-// use util::{create_files, create_identities};
-//
-// #[test]
-// fn test_generate() {
-//     let dir = PathBuf::from("/tmp/test");
-//     std::fs::create_dir_all(dir.clone()).unwrap();
-//     let reg = create_identities(10, 5).unwrap();
-//     create_files(PathBuf::from(dir), &reg).unwrap();
-// }
+use std::path::PathBuf;
+use util::{create_files, create_identities};
+
+#[test]
+fn test_generate() {
+    let dir = PathBuf::from("/tmp/test");
+    std::fs::create_dir_all(dir.clone()).unwrap();
+    let reg = create_identities(10, 5).unwrap();
+    create_files(PathBuf::from(dir), &reg).unwrap();
+}
 
 mod util {
     use std::{collections::BTreeSet, path::PathBuf};
@@ -51,10 +51,13 @@ mod util {
 
             for x in 0..attrs.len() {
                 let mut set = BTreeSet::new();
+                let path = &mut [0; 10];
+                path.try_fill(&mut rand::thread_rng())?;
+                let path = Some(path.to_vec());
                 for num in 0..(rand::random::<usize>() % complexity) {
                     set.insert(Either::Left(generate_verification_method(
                         doc.id.clone(),
-                        Some("auth".as_bytes().to_vec()),
+                        path.clone(),
                         num,
                     )));
                 }
