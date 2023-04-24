@@ -43,9 +43,9 @@ fn main() -> Result<(), anyhow::Error> {
         return Err(anyhow!("DID lengths cannot be longer than {}", MAX_DID_LEN));
     }
 
-    std::fs::create_dir_all(args.path.clone()).unwrap();
-    let reg = create_identities(args.count, args.complexity_factor, args.max_did_len).unwrap();
-    create_files(args.path, &reg).unwrap();
+    std::fs::create_dir_all(args.path.clone())?;
+    let reg = create_identities(args.count, args.complexity_factor, args.max_did_len)?;
+    create_files(args.path, &reg)?;
     Ok(())
 }
 //
