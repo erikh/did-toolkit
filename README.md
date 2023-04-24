@@ -44,6 +44,7 @@ specs I hope will follow.
 
 -   Complete implementation of the [did-method-web specification](https://w3c-ccg.github.io/did-method-web/)
 -   Implementation of Verification Methods (encryption, signing, etc)
+-   Full deserialization of documents
 
 ### Regarding support in general:
 
