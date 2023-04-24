@@ -111,16 +111,19 @@ impl Registry {
             }
 
             if self.get(controller).is_some() {
-                match did_doc.controller {
-                    Some(Either::Left(did)) => return Ok(&did == controller),
-                    Some(Either::Right(did_list)) => {
-                        for did in did_list {
-                            if &did == controller {
-                                return Ok(true);
+                if did_doc.controller.is_some() {
+                    match did_doc.controller.unwrap().0 {
+                        Either::Left(did) => return Ok(&did == controller),
+                        Either::Right(did_list) => {
+                            for did in did_list {
+                                if &did == controller {
+                                    return Ok(true);
+                                }
                             }
                         }
                     }
-                    None => return Ok(false),
+                } else {
+                    return Ok(false);
                 }
             } else {
                 return Err(anyhow!("DID {} did not exist in the registry", did));
@@ -138,7 +141,7 @@ impl Registry {
         if let Some(doc) = self.get(did) {
             if let Some(other_doc) = self.get(other) {
                 if let Some(this_aka) = doc.also_known_as {
-                    for this_aka_each in this_aka {
+                    for this_aka_each in this_aka.0 {
                         match this_aka_each {
                             Either::Left(this_did) => {
                                 if self.compare_aka(did, &this_did, &other_doc)? {
@@ -173,7 +176,7 @@ impl Registry {
         other_doc: &Document,
     ) -> Result<bool, anyhow::Error> {
         if let Some(other_aka) = &other_doc.also_known_as {
-            for other_aka_each in other_aka {
+            for other_aka_each in &other_aka.0 {
                 let other_did = &match other_aka_each {
                     Either::Left(other_did) => other_did.clone(),
                     Either::Right(url) => self.cache_document(url.clone())?.id,
@@ -263,7 +266,10 @@ mod tests {
     #[test]
     fn test_controls() {
         use super::Registry;
-        use crate::{did::DID, document::Document};
+        use crate::{
+            did::DID,
+            document::{Controller, Document},
+        };
         use either::Either;
         use std::collections::BTreeSet;
 
@@ -274,7 +280,7 @@ mod tests {
 
         let doc = Document {
             id: did.clone(),
-            controller: Some(Either::Left(did2.clone())),
+            controller: Some(Controller(Either::Left(did2.clone()))),
             ..Default::default()
         };
 
@@ -298,7 +304,7 @@ mod tests {
 
         let doc = Document {
             id: did.clone(),
-            controller: Some(Either::Right(set)),
+            controller: Some(Controller(Either::Right(set))),
             ..Default::default()
         };
 
@@ -309,7 +315,7 @@ mod tests {
 
         let doc3 = Document {
             id: did3.clone(),
-            controller: Some(Either::Left(did2.clone())),
+            controller: Some(Controller(Either::Left(did2.clone()))),
             ..Default::default()
         };
 
@@ -325,7 +331,10 @@ mod tests {
     #[test]
     fn test_equivalent_to_did() {
         use super::Registry;
-        use crate::{did::DID, document::Document};
+        use crate::{
+            did::DID,
+            document::{AlsoKnownAs, Document},
+        };
         use either::Either;
         use std::collections::BTreeSet;
 
@@ -342,13 +351,13 @@ mod tests {
 
         let doc = Document {
             id: did.clone(),
-            also_known_as: Some(set.clone()),
+            also_known_as: Some(AlsoKnownAs(set.clone())),
             ..Default::default()
         };
 
         let doc2 = Document {
             id: did2.clone(),
-            also_known_as: Some(set2),
+            also_known_as: Some(AlsoKnownAs(set2)),
             ..Default::default()
         };
 
@@ -372,7 +381,7 @@ mod tests {
 
         let doc = Document {
             id: did.clone(),
-            also_known_as: Some(set),
+            also_known_as: Some(AlsoKnownAs(set)),
             ..Default::default()
         };
 

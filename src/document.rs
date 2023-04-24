@@ -194,22 +194,27 @@ impl VerificationMethods {
     }
 }
 
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+pub struct AlsoKnownAs(pub BTreeSet<Either<DID, Url>>);
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+pub struct Controller(pub Either<DID, BTreeSet<DID>>);
+
+impl Default for Controller {
+    fn default() -> Self {
+        Controller(Either::Right(BTreeSet::default()))
+    }
+}
+
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
     #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
     pub context: Option<Either<Url, BTreeSet<Url>>>,
     pub id: DID,
-    #[serde(
-        rename = "alsoKnownAs",
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "crate::document::serde_support::serialize_aka"
-    )]
-    pub also_known_as: Option<BTreeSet<Either<DID, Url>>>,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "crate::document::serde_support::serialize_controller"
-    )]
-    pub controller: Option<Either<DID, BTreeSet<DID>>>,
+    #[serde(rename = "alsoKnownAs", skip_serializing_if = "Option::is_none")]
+    pub also_known_as: Option<AlsoKnownAs>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub controller: Option<Controller>,
     #[serde(rename = "verificationMethod", skip_serializing_if = "Option::is_none")]
     pub verification_method: Option<BTreeSet<VerificationMethod>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -260,51 +265,41 @@ impl Document {
 }
 
 mod serde_support {
-    use crate::did::DID;
+    use super::{AlsoKnownAs, Controller};
     use either::Either;
-    use serde::{ser::SerializeSeq, Serializer};
-    use std::collections::BTreeSet;
-    use url::Url;
+    use serde::{ser::SerializeSeq, Serialize, Serializer};
 
-    pub fn serialize_controller<S>(
-        target: &Option<Either<DID, BTreeSet<DID>>>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match target {
-            None => serializer.serialize_none(),
-            Some(Either::Left(did)) => serializer.serialize_str(&did.to_string()),
-            Some(Either::Right(set)) => {
-                let mut seq = serializer.serialize_seq(Some(set.len()))?;
-                for item in set {
-                    seq.serialize_element(&item.to_string())?;
+    impl Serialize for Controller {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match &self.0 {
+                Either::Left(did) => serializer.serialize_str(&did.to_string()),
+                Either::Right(set) => {
+                    let mut seq = serializer.serialize_seq(Some(set.len()))?;
+                    for item in set {
+                        seq.serialize_element(&item.to_string())?;
+                    }
+                    seq.end()
                 }
-                seq.end()
             }
         }
     }
 
-    pub fn serialize_aka<S>(
-        target: &Option<BTreeSet<Either<DID, Url>>>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match target {
-            None => serializer.serialize_none(),
-            Some(set) => {
-                let mut seq = serializer.serialize_seq(Some(set.len()))?;
-                for item in set {
-                    seq.serialize_element(&match item {
-                        Either::Left(did) => did.to_string(),
-                        Either::Right(url) => url.to_string(),
-                    })?;
-                }
-                seq.end()
+    impl Serialize for AlsoKnownAs {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
+            for item in &self.0 {
+                seq.serialize_element(&match item {
+                    Either::Left(did) => did.to_string(),
+                    Either::Right(url) => url.to_string(),
+                })?;
             }
+            seq.end()
         }
     }
 }

@@ -40,7 +40,7 @@ mod util {
 
     use did_toolkit::{
         did::DID,
-        document::{Document, VerificationMethod, VerificationMethods},
+        document::{AlsoKnownAs, Controller, Document, VerificationMethod, VerificationMethods},
         jwk::JWK,
         registry::Registry,
         url::URLParameters,
@@ -131,20 +131,20 @@ mod util {
             let two = reg[rand::random::<usize>() % reg.len()].clone();
 
             if let None = one.controller {
-                reg[&one.id].controller = Some(Either::Left(two.id));
+                reg[&one.id].controller = Some(Controller(Either::Left(two.id)));
             } else {
-                match one.controller.clone().unwrap() {
+                match one.controller.clone().unwrap().0 {
                     Either::Left(did) => {
                         if did != two.id {
                             let mut set = BTreeSet::new();
                             set.insert(did);
                             set.insert(two.id);
-                            reg[&one.id].controller = Some(Either::Right(set));
+                            reg[&one.id].controller = Some(Controller(Either::Right(set)));
                         }
                     }
                     Either::Right(mut set) => {
                         set.insert(two.id);
-                        reg[&one.id].controller = Some(Either::Right(set));
+                        reg[&one.id].controller = Some(Controller(Either::Right(set)));
                     }
                 }
             }
@@ -165,20 +165,20 @@ mod util {
 
             if let None = one.also_known_as {
                 let one = &mut reg[&one_id];
-                one.also_known_as = Some(BTreeSet::new());
+                one.also_known_as = Some(AlsoKnownAs::default());
             }
 
             if let None = two.also_known_as {
                 let two = &mut reg[&two_id];
-                two.also_known_as = Some(BTreeSet::new());
+                two.also_known_as = Some(AlsoKnownAs::default());
             }
 
             let aka = &mut reg[&one_id].also_known_as.clone().unwrap();
-            aka.insert(Either::Left(two_id.clone()));
+            aka.0.insert(Either::Left(two_id.clone()));
             reg[&one_id].also_known_as = Some(aka.clone());
 
             let aka = &mut reg[&two_id].also_known_as.clone().unwrap();
-            aka.insert(Either::Left(one_id.clone()));
+            aka.0.insert(Either::Left(one_id.clone()));
             reg[&two_id].also_known_as = Some(aka.clone());
         }
     }
