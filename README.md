@@ -28,6 +28,15 @@ specs I hope will follow.
     -   controller verification
     -   Lookup of verification method
     -   Optional caching of remote documents on-demand
+-   Command-line tool `did-toolkit` generates documents that are inter-linked via
+    the `alsoKnownAs` and `controller` properties, generates verification methods
+    for every attribute that takes them, and for attributes that also take a DID
+    URL in place of a verification method, occasionally generates attribute
+    properties which are simply links into other verification methods. It also
+    generates ASCII percent-encoded DIDs that are non-compliant with UTF-8,
+    which should break some implementations that use UTF-8 strings to parse
+    these. The goal is to provide a method to battery-test your implementation
+    against adverse environments, similar to a fuzz tester.
 
 ### Planned Features
 
