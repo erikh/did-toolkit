@@ -26,7 +26,7 @@ struct Args {
     )]
     complexity_factor: usize,
     #[arg(
-        help = "Used to calculate DID maximum length for method name and method ID (indepedently)",
+        help = "Used to calculate DID maximum length for method name and method ID (indepedently) - max value 1000",
         short = 'l',
         long = "did-length",
         default_value = "100"
