@@ -40,7 +40,7 @@ fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
 
     if args.max_did_len > MAX_DID_LEN {
-        return Err(anyhow!("DID lengths cannot be longer than 1000"));
+        return Err(anyhow!("DID lengths cannot be longer than {}", MAX_DID_LEN));
     }
 
     std::fs::create_dir_all(args.path.clone()).unwrap();
