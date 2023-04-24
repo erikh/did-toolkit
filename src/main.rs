@@ -234,12 +234,17 @@ mod util {
             }
         };
 
-        let mut method_id: [u8; 15] = [0; 15];
-        method_id.try_fill(&mut rand::thread_rng())?;
+        let mut chars: [u8; 100] = [0; 100];
+        chars.try_fill(&mut rand::thread_rng())?;
+
+        let mut method_id = Vec::new();
+        for x in 0..rand::random::<usize>() % 100 {
+            method_id.push(chars[x]);
+        }
 
         Ok(DID {
             name: method_name,
-            id: method_id.to_vec(),
+            id: method_id,
         })
     }
 }
