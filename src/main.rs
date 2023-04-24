@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use clap::Parser;
 use std::path::PathBuf;
 use util::{create_files, create_identities};
@@ -24,13 +25,26 @@ struct Args {
         default_value = "5"
     )]
     complexity_factor: usize,
+    #[arg(
+        help = "Used to calculate DID maximum length for method name and method ID (indepedently)",
+        short = 'l',
+        long = "did-length",
+        default_value = "100"
+    )]
+    max_did_len: usize,
 }
+
+const MAX_DID_LEN: usize = 1000;
 
 fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
 
+    if args.max_did_len > MAX_DID_LEN {
+        return Err(anyhow!("DID lengths cannot be longer than 1000"));
+    }
+
     std::fs::create_dir_all(args.path.clone()).unwrap();
-    let reg = create_identities(args.count, args.complexity_factor).unwrap();
+    let reg = create_identities(args.count, args.complexity_factor, args.max_did_len).unwrap();
     create_files(args.path, &reg).unwrap();
     Ok(())
 }
@@ -53,11 +67,12 @@ mod util {
     pub fn create_identities<'a>(
         count: usize,
         complexity: usize,
+        max_did_len: usize,
     ) -> Result<Registry, anyhow::Error> {
         let mut reg: Registry = Default::default();
 
         for _ in 0..count {
-            let mut doc = create_random_document(None)?;
+            let mut doc = create_random_document(None, max_did_len)?;
 
             let mut set = BTreeSet::new();
             for num in 0..(rand::random::<usize>() % complexity) {
@@ -201,17 +216,23 @@ mod util {
         }
     }
 
-    pub fn create_random_document(template: Option<Document>) -> Result<Document, anyhow::Error> {
+    pub fn create_random_document(
+        template: Option<Document>,
+        max_did_len: usize,
+    ) -> Result<Document, anyhow::Error> {
         let mut doc = match template {
             Some(template) => template.clone(),
             None => Default::default(),
         };
 
-        doc.id = create_random_did(None)?;
+        doc.id = create_random_did(None, max_did_len)?;
         Ok(doc)
     }
 
-    pub fn create_random_did(method_name: Option<&str>) -> Result<DID, anyhow::Error> {
+    pub fn create_random_did(
+        method_name: Option<&str>,
+        max_len: usize,
+    ) -> Result<DID, anyhow::Error> {
         // if a method name is supplied, just use it, otherwise, try to generate a "real" one.
         let method_name: Vec<u8> = match method_name {
             Some(method_name) => method_name.into(),
@@ -225,7 +246,7 @@ mod util {
 
                 let mut v = Vec::new();
 
-                for _ in 0..rand::random::<usize>() % 100 {
+                for _ in 0..rand::random::<usize>() % max_len {
                     let idx = rand::random::<usize>() % bytes.len();
                     v.push(bytes.get(idx).unwrap().clone());
                 }
@@ -234,11 +255,11 @@ mod util {
             }
         };
 
-        let mut chars: [u8; 100] = [0; 100];
+        let mut chars: [u8; 1000] = [0; 1000];
         chars.try_fill(&mut rand::thread_rng())?;
 
         let mut method_id = Vec::new();
-        for x in 0..rand::random::<usize>() % 100 {
+        for x in 0..rand::random::<usize>() % max_len {
             method_id.push(chars[x]);
         }
 
