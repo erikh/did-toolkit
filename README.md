@@ -15,9 +15,11 @@ specs I hope will follow.
 -   DID (identifier-only) syntax
     -   Parsing from strings
     -   Generation from pre-populated struct
+    -   Construction of DID URLs from DIDs when provided additional URL properties
 -   DID URL (different from DID)
     -   Parsing absolute URLs, and mapping relative URLs from absolute ones
     -   Generation from pre-populated struct
+    -   Decomposition into the DID that the URL is made from
 -   DID Document serialization from JSON
     -   Preliminary support for [registry-supported types](https://www.w3.org/TR/did-spec-registries/)
         -   Types with "issues" were elided for implementation safety's sake
