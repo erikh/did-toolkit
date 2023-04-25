@@ -1,7 +1,7 @@
 use crate::{did::DID, jwk::JWK, multibase::MultiBase, registry::Registry, url::URL};
 use anyhow::anyhow;
 use either::Either;
-use serde::{ser::SerializeSeq, Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, fmt::Display, hash::Hash};
 use url::Url;
 
@@ -141,26 +141,6 @@ impl ServiceEndpoint {
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
 pub struct VerificationMethods(pub BTreeSet<Either<VerificationMethod, URL>>);
 
-impl Serialize for VerificationMethods {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
-        for item in &self.0 {
-            match item {
-                Either::Left(vm) => {
-                    seq.serialize_element(&vm)?;
-                }
-                Either::Right(url) => {
-                    seq.serialize_element(&url)?;
-                }
-            }
-        }
-        seq.end()
-    }
-}
-
 impl VerificationMethods {
     // Takes an optional registry to lookup by URL
     pub fn valid(&self, registry: Option<&Registry>) -> Result<(), anyhow::Error> {
@@ -265,7 +245,7 @@ impl Document {
 }
 
 mod serde_support {
-    use super::{AlsoKnownAs, Controller};
+    use super::{AlsoKnownAs, Controller, VerificationMethods};
     use either::Either;
     use serde::{ser::SerializeSeq, Serialize, Serializer};
 
@@ -298,6 +278,26 @@ mod serde_support {
                     Either::Left(did) => did.to_string(),
                     Either::Right(url) => url.to_string(),
                 })?;
+            }
+            seq.end()
+        }
+    }
+
+    impl Serialize for VerificationMethods {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
+            for item in &self.0 {
+                match item {
+                    Either::Left(vm) => {
+                        seq.serialize_element(&vm)?;
+                    }
+                    Either::Right(url) => {
+                        seq.serialize_element(&url)?;
+                    }
+                }
             }
             seq.end()
         }
