@@ -208,10 +208,19 @@ impl Default for Controller {
     }
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Context(pub Either<Url, BTreeSet<Url>>);
+
+impl Default for Context {
+    fn default() -> Self {
+        Context(Either::Right(BTreeSet::default()))
+    }
+}
+
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
     #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
-    pub context: Option<Either<Url, BTreeSet<Url>>>,
+    pub context: Option<Context>,
     pub id: DID,
     #[serde(rename = "alsoKnownAs", skip_serializing_if = "Option::is_none")]
     pub also_known_as: Option<AlsoKnownAs>,
@@ -268,7 +277,7 @@ impl Document {
 
 mod serde_support {
     use super::{
-        AlsoKnownAs, Controller, ServiceEndpointProperties, ServiceEndpoints, ServiceType,
+        AlsoKnownAs, Context, Controller, ServiceEndpointProperties, ServiceEndpoints, ServiceType,
         ServiceTypes, VerificationMethods,
     };
     use crate::{did::DID, url::URL};
@@ -598,6 +607,65 @@ mod serde_support {
             match &self.0 {
                 Either::Left(url) => serializer.serialize_str(&url.to_string()),
                 Either::Right(properties) => properties.serialize(serializer),
+            }
+        }
+    }
+
+    struct ContextVisitor;
+
+    impl<'de> Visitor<'de> for ContextVisitor {
+        type Value = Context;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("Expecting a URL or set of URLs")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            match Url::parse(v) {
+                Ok(res) => Ok(Context(Either::Left(res))),
+                Err(e) => Err(serde::de::Error::custom(e)),
+            }
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut set = BTreeSet::default();
+
+            while let Some(elem) = seq.next_element()? {
+                match Url::parse(elem) {
+                    Ok(res) => {
+                        set.insert(res);
+                    }
+                    Err(e) => return Err(serde::de::Error::custom(e)),
+                }
+            }
+
+            Ok(Context(Either::Right(set)))
+        }
+    }
+
+    impl<'de> Deserialize<'de> for Context {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_any(ContextVisitor)
+        }
+    }
+
+    impl Serialize for Context {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match &self.0 {
+                Either::Left(url) => serializer.serialize_str(&url.to_string()),
+                Either::Right(set) => set.serialize(serializer),
             }
         }
     }
