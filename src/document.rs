@@ -2,7 +2,7 @@ use crate::{did::DID, jwk::JWK, multibase::MultiBase, registry::Registry, url::U
 use anyhow::anyhow;
 use either::Either;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, fmt::Display, hash::Hash};
+use std::{collections::BTreeSet, fmt::Display, hash::Hash, str::FromStr};
 use url::Url;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -20,6 +20,24 @@ pub enum VerificationMethodType {
 impl Default for VerificationMethodType {
     fn default() -> Self {
         VerificationMethodType::JWK2020
+    }
+}
+
+impl FromStr for VerificationMethodType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "JsonWebKey2020" => Ok(Self::JWK2020),
+            "EcdsaSecp256k1VerificationKey2019" => Ok(Self::ECDSASECP256K12019),
+            "Ed25519VerificationKey2018" => Ok(Self::Ed255192018),
+            "Bls12381G1Key2020" => Ok(Self::Bls12381G12020),
+            "Bls12381G2Key2020" => Ok(Self::Bls12381G22020),
+            "PgpVerificationKey2021" => Ok(Self::PGP2021),
+            "EcdsaSecp256k1RecoveryMethod2020" => Ok(Self::ECDSASECP256K1Recovery2020),
+            "VerifiableCondition2021" => Ok(Self::VerifiableCondition2021),
+            _ => Err(anyhow!("Property does not match")),
+        }
     }
 }
 
@@ -99,6 +117,18 @@ impl Display for ServiceType {
             Self::LinkedDomains => "LinkedDomains",
             Self::CredentialRegistry => "CredentialRegistry",
         })
+    }
+}
+
+impl FromStr for ServiceType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "LinkedDomains" => Ok(Self::LinkedDomains),
+            "CredentialRegistry" => Ok(Self::CredentialRegistry),
+            _ => Err(anyhow!("Property does not match")),
+        }
     }
 }
 
