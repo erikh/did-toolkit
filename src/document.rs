@@ -145,7 +145,7 @@ pub struct ServiceEndpointProperties {
     registries: Option<BTreeSet<Url>>,
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ServiceTypes(pub Either<ServiceType, BTreeSet<ServiceType>>);
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
@@ -160,7 +160,7 @@ pub struct ServiceEndpoint {
     pub endpoint: ServiceEndpoints,
 }
 
-#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VerificationMethods(pub BTreeSet<Either<VerificationMethod, URL>>);
 
 impl VerificationMethods {
@@ -196,10 +196,10 @@ impl VerificationMethods {
     }
 }
 
-#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AlsoKnownAs(pub BTreeSet<Either<DID, Url>>);
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Controller(pub Either<DID, BTreeSet<DID>>);
 
 impl Default for Controller {
@@ -267,9 +267,61 @@ impl Document {
 }
 
 mod serde_support {
-    use super::{AlsoKnownAs, Controller, ServiceEndpoints, ServiceTypes, VerificationMethods};
+    use super::{
+        AlsoKnownAs, Controller, ServiceEndpoints, ServiceType, ServiceTypes, VerificationMethods,
+    };
+    use crate::{did::DID, url::URL};
     use either::Either;
-    use serde::{ser::SerializeSeq, Serialize, Serializer};
+    use serde::{de::Visitor, ser::SerializeSeq, Deserialize, Serialize, Serializer};
+    use std::{collections::BTreeSet, str::FromStr};
+    use url::Url;
+
+    struct ControllerVisitor;
+
+    impl<'de> Visitor<'de> for ControllerVisitor {
+        type Value = Controller;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("Expecting a DID or set of DIDs")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            match DID::parse(v) {
+                Ok(did) => Ok(Controller(Either::Left(did))),
+                Err(e) => Err(E::custom(e)),
+            }
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut set = BTreeSet::default();
+
+            while let Some(elem) = seq.next_element()? {
+                match DID::parse(elem) {
+                    Ok(did) => {
+                        set.insert(did);
+                    }
+                    Err(e) => return Err(serde::de::Error::custom(e)),
+                }
+            }
+
+            Ok(Controller(Either::Right(set)))
+        }
+    }
+
+    impl<'de> Deserialize<'de> for Controller {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_any(ControllerVisitor)
+        }
+    }
 
     impl Serialize for Controller {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -289,6 +341,48 @@ mod serde_support {
         }
     }
 
+    struct AlsoKnownAsVisitor;
+
+    impl<'de> Visitor<'de> for AlsoKnownAsVisitor {
+        type Value = AlsoKnownAs;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("Expecting a set of inter-mixed DIDs and URLs")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut set = BTreeSet::default();
+
+            while let Some(elem) = seq.next_element()? {
+                match DID::parse(elem) {
+                    Ok(did) => {
+                        set.insert(Either::Left(did));
+                    }
+                    Err(_) => match Url::parse(elem) {
+                        Ok(url) => {
+                            set.insert(Either::Right(url));
+                        }
+                        Err(e) => return Err(serde::de::Error::custom(e)),
+                    },
+                }
+            }
+
+            Ok(AlsoKnownAs(set))
+        }
+    }
+
+    impl<'de> Deserialize<'de> for AlsoKnownAs {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_seq(AlsoKnownAsVisitor)
+        }
+    }
+
     impl Serialize for AlsoKnownAs {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -302,6 +396,48 @@ mod serde_support {
                 })?;
             }
             seq.end()
+        }
+    }
+
+    struct VerificationMethodsVisitor;
+    impl<'de> Visitor<'de> for VerificationMethodsVisitor {
+        type Value = VerificationMethods;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("Expecting a set of verification methods or DID URLs")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut set = BTreeSet::default();
+
+            while let Some(elem) = seq.next_element()? {
+                // FIXME probably not the best choice for a "generic" serializer, but I'm lazy
+                match serde_json::from_str(elem) {
+                    Ok(vm) => {
+                        set.insert(Either::Left(vm));
+                    }
+                    Err(_) => match URL::parse(elem) {
+                        Ok(url) => {
+                            set.insert(Either::Right(url));
+                        }
+                        Err(e) => return Err(serde::de::Error::custom(e)),
+                    },
+                }
+            }
+
+            Ok(VerificationMethods(set))
+        }
+    }
+
+    impl<'de> Deserialize<'de> for VerificationMethods {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_seq(VerificationMethodsVisitor)
         }
     }
 
@@ -322,6 +458,53 @@ mod serde_support {
                 }
             }
             seq.end()
+        }
+    }
+
+    struct ServiceTypeVisitor;
+
+    impl<'de> Visitor<'de> for ServiceTypeVisitor {
+        type Value = ServiceTypes;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("Expecting set of service types or a single service type")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut set = BTreeSet::default();
+
+            while let Some(elem) = seq.next_element()? {
+                match ServiceType::from_str(elem) {
+                    Ok(st) => {
+                        set.insert(st);
+                    }
+                    Err(e) => return Err(serde::de::Error::custom(e)),
+                }
+            }
+
+            Ok(ServiceTypes(Either::Right(set)))
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(ServiceTypes(match ServiceType::from_str(v) {
+                Ok(st) => Either::Left(st),
+                Err(e) => return Err(serde::de::Error::custom(e)),
+            }))
+        }
+    }
+
+    impl<'de> Deserialize<'de> for ServiceTypes {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_any(ServiceTypeVisitor)
         }
     }
 
