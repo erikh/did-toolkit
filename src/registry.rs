@@ -8,6 +8,7 @@ use either::Either;
 use std::{
     collections::BTreeMap,
     ops::{Index, IndexMut},
+    path::PathBuf,
 };
 use url::Url;
 
@@ -59,6 +60,14 @@ impl Registry {
             r: BTreeMap::new(),
             remote_cache: true,
         }
+    }
+
+    pub fn load_document(&mut self, filename: PathBuf) -> Result<(), anyhow::Error> {
+        let mut file = std::fs::OpenOptions::new();
+        file.read(true);
+        let io = file.open(filename)?;
+        let doc: Document = serde_json::from_reader(io)?;
+        self.insert(doc)
     }
 
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = (&DID, &Document)> + 'a {
