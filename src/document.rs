@@ -132,23 +132,23 @@ impl FromStr for ServiceType {
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 // a lumping of all the one off garbage in this part of the spec.
 // seriously, I think someone at the w3c thinks JSON is a programming language
 pub struct ServiceEndpointProperties {
     // only used for LinkedDomains
     #[serde(skip_serializing_if = "Option::is_none")]
-    origins: Option<BTreeSet<Url>>,
+    pub origins: Option<BTreeSet<Url>>,
 
     // only used for CredentialRegistry
     #[serde(skip_serializing_if = "Option::is_none")]
-    registries: Option<BTreeSet<Url>>,
+    pub registries: Option<BTreeSet<Url>>,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ServiceTypes(pub Either<ServiceType, BTreeSet<ServiceType>>);
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ServiceEndpoints(pub Either<Url, ServiceEndpointProperties>);
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -268,7 +268,8 @@ impl Document {
 
 mod serde_support {
     use super::{
-        AlsoKnownAs, Controller, ServiceEndpoints, ServiceType, ServiceTypes, VerificationMethods,
+        AlsoKnownAs, Controller, ServiceEndpointProperties, ServiceEndpoints, ServiceType,
+        ServiceTypes, VerificationMethods,
     };
     use crate::{did::DID, url::URL};
     use either::Either;
@@ -525,6 +526,67 @@ mod serde_support {
                     seq.end()
                 }
             }
+        }
+    }
+
+    struct ServiceEndpointVisitor;
+
+    impl<'de> Visitor<'de> for ServiceEndpointVisitor {
+        type Value = ServiceEndpoints;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("Expected a service URL or service endpoint definition")
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::MapAccess<'de>,
+        {
+            let mut se = ServiceEndpointProperties::default();
+
+            while let Some(key) = map.next_key()? {
+                match key {
+                    "origins" => {
+                        se.origins = Some(match serde_json::from_str(map.next_value()?) {
+                            Ok(res) => res,
+                            Err(e) => return Err(serde::de::Error::custom(e)),
+                        })
+                    }
+                    "registries" => {
+                        se.registries = Some(match serde_json::from_str(map.next_value()?) {
+                            Ok(res) => res,
+                            Err(e) => return Err(serde::de::Error::custom(e)),
+                        })
+                    }
+                    _ => {
+                        return Err(serde::de::Error::unknown_field(
+                            key,
+                            &["origins", "registries"],
+                        ))
+                    }
+                }
+            }
+
+            Ok(ServiceEndpoints(Either::Right(se)))
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            match Url::parse(v) {
+                Ok(url) => Ok(ServiceEndpoints(Either::Left(url))),
+                Err(e) => Err(serde::de::Error::custom(e)),
+            }
+        }
+    }
+
+    impl<'de> Deserialize<'de> for ServiceEndpoints {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_any(ServiceEndpointVisitor)
         }
     }
 
