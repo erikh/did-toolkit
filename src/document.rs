@@ -115,27 +115,19 @@ pub struct ServiceEndpointProperties {
     registries: Option<BTreeSet<Url>>,
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+pub struct ServiceTypes(pub Either<ServiceType, BTreeSet<ServiceType>>);
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+pub struct ServiceEndpoints(pub Either<Url, ServiceEndpointProperties>);
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ServiceEndpoint {
     pub id: Url,
     #[serde(rename = "type")]
-    pub typ: Either<ServiceType, BTreeSet<ServiceType>>,
+    pub typ: ServiceTypes,
     #[serde(rename = "serviceEndpoint")]
-    pub endpoint: Either<Url, ServiceEndpointProperties>,
-}
-
-impl ServiceEndpoint {
-    pub fn id(&self) -> Url {
-        self.id.clone()
-    }
-
-    pub fn service_type(&self) -> Either<ServiceType, BTreeSet<ServiceType>> {
-        self.typ.clone()
-    }
-
-    pub fn endpoint(&self) -> Either<Url, ServiceEndpointProperties> {
-        self.endpoint.clone()
-    }
+    pub endpoint: ServiceEndpoints,
 }
 
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
@@ -245,7 +237,7 @@ impl Document {
 }
 
 mod serde_support {
-    use super::{AlsoKnownAs, Controller, VerificationMethods};
+    use super::{AlsoKnownAs, Controller, ServiceEndpoints, ServiceTypes, VerificationMethods};
     use either::Either;
     use serde::{ser::SerializeSeq, Serialize, Serializer};
 
@@ -300,6 +292,38 @@ mod serde_support {
                 }
             }
             seq.end()
+        }
+    }
+
+    impl Serialize for ServiceTypes {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match &self.0 {
+                Either::Left(typ) => typ.serialize(serializer),
+                Either::Right(set) => {
+                    let mut seq = serializer.serialize_seq(Some(set.len()))?;
+
+                    for item in set {
+                        seq.serialize_element(item)?;
+                    }
+
+                    seq.end()
+                }
+            }
+        }
+    }
+
+    impl Serialize for ServiceEndpoints {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match &self.0 {
+                Either::Left(url) => serializer.serialize_str(&url.to_string()),
+                Either::Right(properties) => properties.serialize(serializer),
+            }
         }
     }
 }
