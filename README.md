@@ -20,7 +20,7 @@ specs I hope will follow.
     -   Parsing absolute URLs, and mapping relative URLs from absolute ones
     -   Generation from pre-populated struct
     -   Decomposition into the DID that the URL is made from
--   DID Document serialization from JSON
+-   DID Document serialization to JSON, and de-serialization from JSON
     -   Preliminary support for [registry-supported types](https://www.w3.org/TR/did-spec-registries/)
         -   Types with "issues" were elided for implementation safety's sake
     -   Capable of generating JWK ECDSA keys with the P256 curve. More coming here.
@@ -41,14 +41,9 @@ specs I hope will follow.
 
 -   Complete implementation of the [did-method-web specification](https://w3c-ccg.github.io/did-method-web/)
 -   Implementation of Verification Methods (encryption, signing, etc)
--   Full deserialization of documents
 
 ### Regarding support in general:
 
--   Deserialization is coming! It's a bit tricky with the DID spec's type
-    switching in many fields of the document (between string, map, set, etc) in a
-    statically typed language. Serde can handle it, it just takes additional
-    effort.
 -   Consumption of formats:
     -   JSON-LD support is _not_ planned due to the existing JSON-LD parser
         implementations requiring non-standard JSON libraries that don't
