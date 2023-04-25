@@ -62,7 +62,6 @@ mod util {
     use either::Either;
     use rand::Fill;
     use serde_json::json;
-    //use tempfile::tempdir;
 
     pub fn create_identities<'a>(
         count: usize,
