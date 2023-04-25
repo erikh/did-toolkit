@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::BTreeSet, fmt::Display, hash::Hash, str::FromStr};
 use url::Url;
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum VerificationMethodType {
     JWK2020,
     ECDSASECP256K12019,
@@ -99,7 +99,7 @@ impl VerificationMethod {
     }
 }
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 // it's important to note here that the document that describes these is not very well formed.
 // https://www.w3.org/TR/did-spec-registries/#service-types
 pub enum ServiceType {
@@ -278,7 +278,7 @@ impl Document {
 mod serde_support {
     use super::{
         AlsoKnownAs, Context, Controller, ServiceEndpointProperties, ServiceEndpoints, ServiceType,
-        ServiceTypes, VerificationMethods,
+        ServiceTypes, VerificationMethodType, VerificationMethods,
     };
     use crate::{did::DID, url::URL};
     use either::Either;
@@ -667,6 +667,53 @@ mod serde_support {
                 Either::Left(url) => serializer.serialize_str(&url.to_string()),
                 Either::Right(set) => set.serialize(serializer),
             }
+        }
+    }
+
+    struct VerificationMethodTypeVisitor;
+
+    impl<'de> Visitor<'de> for VerificationMethodTypeVisitor {
+        type Value = VerificationMethodType;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("Expected a valid verification method type")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            match VerificationMethodType::from_str(v) {
+                Ok(typ) => Ok(typ),
+                Err(e) => Err(serde::de::Error::custom(e)),
+            }
+        }
+    }
+
+    impl<'de> Deserialize<'de> for VerificationMethodType {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_str(VerificationMethodTypeVisitor)
+        }
+    }
+
+    impl Serialize for VerificationMethodType {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_str(&self.to_string())
+        }
+    }
+
+    impl Serialize for ServiceType {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_str(&self.to_string())
         }
     }
 }
