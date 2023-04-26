@@ -559,18 +559,8 @@ mod serde_support {
 
             while let Some(key) = map.next_key()? {
                 match key {
-                    "origins" => {
-                        se.origins = Some(match serde_json::from_str(map.next_value()?) {
-                            Ok(res) => res,
-                            Err(e) => return Err(serde::de::Error::custom(e)),
-                        })
-                    }
-                    "registries" => {
-                        se.registries = Some(match serde_json::from_str(map.next_value()?) {
-                            Ok(res) => res,
-                            Err(e) => return Err(serde::de::Error::custom(e)),
-                        })
-                    }
+                    "origins" => se.origins = map.next_value()?,
+                    "registries" => se.registries = map.next_value()?,
                     _ => {
                         return Err(serde::de::Error::unknown_field(
                             key,
