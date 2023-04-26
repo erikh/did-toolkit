@@ -318,8 +318,8 @@ mod serde_support {
         {
             let mut set = BTreeSet::default();
 
-            while let Some(elem) = seq.next_element()? {
-                match DID::parse(elem) {
+            while let Some(elem) = seq.next_element::<String>()? {
+                match DID::parse(&elem) {
                     Ok(did) => {
                         set.insert(did);
                     }
