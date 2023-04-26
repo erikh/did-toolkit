@@ -20,7 +20,7 @@ other specs I hope will follow.
     -   Parsing absolute URLs, and mapping relative URLs from absolute ones
     -   Generation from pre-populated struct
     -   Decomposition into the DID that the URL is made from
--   DID Document serialization to JSON, and de-serialization from JSON
+-   DID Document serialization and de-serialization
     -   Preliminary support for [registry-supported types](https://www.w3.org/TR/did-spec-registries/)
         -   Types with "issues" were elided for implementation safety's sake
     -   Capable of generating JWK ECDSA keys with the P256 curve. More coming here.
