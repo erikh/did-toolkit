@@ -32,6 +32,8 @@ struct Args {
         default_value = "100"
     )]
     max_did_len: usize,
+    #[arg(help = "Output CBOR instead of JSON", long = "cbor")]
+    cbor: bool,
 }
 
 const MAX_DID_LEN: usize = 1000;
@@ -45,7 +47,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     std::fs::create_dir_all(args.path.clone())?;
     let reg = create_identities(args.count, args.complexity_factor, args.max_did_len)?;
-    create_files(args.path, &reg)?;
+    create_files(args.path, args.cbor, &reg)?;
     Ok(())
 }
 //
@@ -86,12 +88,21 @@ mod util {
         Ok(reg)
     }
 
-    pub fn create_files(dir: PathBuf, reg: &Registry) -> Result<(), anyhow::Error> {
+    pub fn create_files(dir: PathBuf, cbor: bool, reg: &Registry) -> Result<(), anyhow::Error> {
         let mut num = 0;
 
         for (_, doc) in reg.iter() {
-            let filename = dir.join(&format!("{}.json", num));
-            std::fs::write(filename, &json!(doc).to_string())?;
+            if cbor {
+                let filename = dir.join(&format!("{}.cbor", num));
+                let mut opts = std::fs::OpenOptions::new();
+                opts.create_new(true);
+                opts.write(true);
+                let io = opts.open(filename)?;
+                ciborium::ser::into_writer(doc, io)?;
+            } else {
+                let filename = dir.join(&format!("{}.json", num));
+                std::fs::write(filename, &json!(doc).to_string())?;
+            }
             num += 1;
         }
 

@@ -70,6 +70,14 @@ impl Registry {
         self.insert(doc)
     }
 
+    pub fn load_document_cbor(&mut self, filename: PathBuf) -> Result<(), anyhow::Error> {
+        let mut file = std::fs::OpenOptions::new();
+        file.read(true);
+        let io = file.open(filename)?;
+        let doc: Document = ciborium::de::from_reader(io)?;
+        self.insert(doc)
+    }
+
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = (&DID, &Document)> + 'a {
         self.r.iter()
     }
