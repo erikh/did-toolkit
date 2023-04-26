@@ -151,7 +151,7 @@ impl Registry {
             if let Some(other_doc) = self.get(other) {
                 if let Some(this_aka) = doc.also_known_as {
                     for this_aka_each in this_aka.0 {
-                        match this_aka_each {
+                        match this_aka_each.0 {
                             Either::Left(this_did) => {
                                 if self.compare_aka(did, &this_did, &other_doc)? {
                                     return Ok(true);
@@ -186,7 +186,7 @@ impl Registry {
     ) -> Result<bool, anyhow::Error> {
         if let Some(other_aka) = &other_doc.also_known_as {
             for other_aka_each in &other_aka.0 {
-                let other_did = &match other_aka_each {
+                let other_did = &match &other_aka_each.0 {
                     Either::Left(other_did) => other_did.clone(),
                     Either::Right(url) => self.cache_document(url.clone())?.id,
                 };
@@ -342,7 +342,7 @@ mod tests {
         use super::Registry;
         use crate::{
             did::DID,
-            document::{AlsoKnownAs, Document},
+            document::{AlsoKnownAs, AlsoKnownAsEither, Document},
         };
         use either::Either;
         use std::collections::BTreeSet;
@@ -353,10 +353,10 @@ mod tests {
         let did3 = DID::parse("did:testing:u:charlie").unwrap();
 
         let mut set = BTreeSet::new();
-        set.insert(Either::Left(did2.clone()));
+        set.insert(AlsoKnownAsEither(Either::Left(did2.clone())));
 
         let mut set2 = BTreeSet::new();
-        set2.insert(Either::Left(did.clone()));
+        set2.insert(AlsoKnownAsEither(Either::Left(did.clone())));
 
         let doc = Document {
             id: did.clone(),

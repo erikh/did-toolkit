@@ -199,8 +199,11 @@ impl VerificationMethods {
     }
 }
 
-#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AlsoKnownAs(pub BTreeSet<Either<DID, Url>>);
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AlsoKnownAsEither(pub Either<DID, Url>);
+
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct AlsoKnownAs(pub BTreeSet<AlsoKnownAsEither>);
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Controller(pub Either<DID, BTreeSet<DID>>);
@@ -280,8 +283,9 @@ impl Document {
 
 mod serde_support {
     use super::{
-        AlsoKnownAs, Context, Controller, ServiceEndpointProperties, ServiceEndpoints, ServiceType,
-        ServiceTypes, VerificationMethod, VerificationMethodEither, VerificationMethodType,
+        AlsoKnownAsEither, Context, Controller, ServiceEndpointProperties, ServiceEndpoints,
+        ServiceType, ServiceTypes, VerificationMethod, VerificationMethodEither,
+        VerificationMethodType,
     };
     use crate::{did::DID, url::URL};
     use either::Either;
@@ -357,58 +361,46 @@ mod serde_support {
     struct AlsoKnownAsVisitor;
 
     impl<'de> Visitor<'de> for AlsoKnownAsVisitor {
-        type Value = AlsoKnownAs;
+        type Value = AlsoKnownAsEither;
 
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
             formatter.write_str("Expecting a set of inter-mixed DIDs and URLs")
         }
 
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
         where
-            A: serde::de::SeqAccess<'de>,
+            E: serde::de::Error,
         {
-            let mut set = BTreeSet::default();
+            let res = match DID::parse(v) {
+                Ok(did) => Either::Left(did),
+                Err(_) => match Url::parse(v) {
+                    Ok(url) => Either::Right(url),
+                    Err(e) => return Err(serde::de::Error::custom(e)),
+                },
+            };
 
-            while let Some(elem) = seq.next_element()? {
-                match DID::parse(elem) {
-                    Ok(did) => {
-                        set.insert(Either::Left(did));
-                    }
-                    Err(_) => match Url::parse(elem) {
-                        Ok(url) => {
-                            set.insert(Either::Right(url));
-                        }
-                        Err(e) => return Err(serde::de::Error::custom(e)),
-                    },
-                }
-            }
-
-            Ok(AlsoKnownAs(set))
+            Ok(AlsoKnownAsEither(res))
         }
     }
 
-    impl<'de> Deserialize<'de> for AlsoKnownAs {
+    impl<'de> Deserialize<'de> for AlsoKnownAsEither {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where
             D: serde::Deserializer<'de>,
         {
-            deserializer.deserialize_seq(AlsoKnownAsVisitor)
+            deserializer.deserialize_str(AlsoKnownAsVisitor)
         }
     }
 
-    impl Serialize for AlsoKnownAs {
+    impl Serialize for AlsoKnownAsEither {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
         {
-            let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
-            for item in &self.0 {
-                seq.serialize_element(&match item {
-                    Either::Left(did) => did.to_string(),
-                    Either::Right(url) => url.to_string(),
-                })?;
-            }
-            seq.end()
+            serializer.serialize_str(&match &self.0 {
+                Either::Left(did) => did.to_string(),
+                Either::Right(url) => url.to_string(),
+            })
         }
     }
 

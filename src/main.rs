@@ -180,11 +180,13 @@ mod util {
             }
 
             let aka = &mut reg[&one_id].also_known_as.clone().unwrap();
-            aka.0.insert(Either::Left(two_id.clone()));
+            aka.0
+                .insert(AlsoKnownAsEither(Either::Left(two_id.clone())));
             reg[&one_id].also_known_as = Some(aka.clone());
 
             let aka = &mut reg[&two_id].also_known_as.clone().unwrap();
-            aka.0.insert(Either::Left(one_id.clone()));
+            aka.0
+                .insert(AlsoKnownAsEither(Either::Left(one_id.clone())));
             reg[&two_id].also_known_as = Some(aka.clone());
         }
     }
