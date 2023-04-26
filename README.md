@@ -30,6 +30,7 @@ other specs I hope will follow.
     -   controller verification
     -   Lookup of verification method
     -   Optional caching of remote documents on-demand
+    -   Loading of documents from JSON or CBOR
 -   Command-line tool `did-toolkit` generates documents for fuzz testing your registry or DID-compliant implementation:
     -   Generation of documents that are inter-linked via the `alsoKnownAs` and `controller` properties
     -   Generates verification methods for every attribute that takes them
@@ -52,8 +53,6 @@ other specs I hope will follow.
         simply consume I will bother. I have some personal and pointed feelings
         about this standard as a former, scar-riddled consumer of XML standards
         that insist I do not attempt to implement this myself.
-    -   CBOR ingestion and production should be doable outside of this library,
-        but we will attempt to support it as of this writing.
 
 ### Author
 
