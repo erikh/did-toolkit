@@ -490,8 +490,8 @@ mod serde_support {
         {
             let mut set = BTreeSet::default();
 
-            while let Some(elem) = seq.next_element()? {
-                match ServiceType::from_str(elem) {
+            while let Some(elem) = seq.next_element::<String>()? {
+                match ServiceType::from_str(&elem) {
                     Ok(st) => {
                         set.insert(st);
                     }
@@ -557,13 +557,13 @@ mod serde_support {
         {
             let mut se = ServiceEndpointProperties::default();
 
-            while let Some(key) = map.next_key()? {
-                match key {
+            while let Some(key) = map.next_key::<String>()? {
+                match key.as_str() {
                     "origins" => se.origins = map.next_value()?,
                     "registries" => se.registries = map.next_value()?,
                     _ => {
                         return Err(serde::de::Error::unknown_field(
-                            key,
+                            &key,
                             &["origins", "registries"],
                         ))
                     }
@@ -630,8 +630,8 @@ mod serde_support {
         {
             let mut set = BTreeSet::default();
 
-            while let Some(elem) = seq.next_element()? {
-                match Url::parse(elem) {
+            while let Some(elem) = seq.next_element::<String>()? {
+                match Url::parse(&elem) {
                     Ok(res) => {
                         set.insert(res);
                     }
