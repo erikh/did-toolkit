@@ -74,6 +74,14 @@ impl DID {
         match s.strip_prefix("did:") {
             Some(s) => match s.split_once(':') {
                 Some((method_name, method_id)) => {
+                    if method_id.is_empty() {
+                        return Err(anyhow!("Method ID cannot be empty"));
+                    }
+
+                    if method_name.is_empty() {
+                        return Err(anyhow!("Method name cannot be empty"));
+                    }
+
                     validate_method_name(method_name.as_bytes())?;
                     Ok(DID {
                         name: method_name.into(),
@@ -121,6 +129,8 @@ mod tests {
         use super::DID;
 
         assert!(DID::parse("").is_err());
+        assert!(DID::parse("did::").is_err());
+        assert!(DID::parse("did:a:").is_err());
         assert!(DID::parse("frobnik").is_err());
         assert!(DID::parse("did").is_err());
         assert!(DID::parse("frobnik:").is_err());

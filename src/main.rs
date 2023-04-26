@@ -68,7 +68,7 @@ mod util {
             let mut doc = create_random_document(None, max_did_len)?;
 
             let mut set = BTreeSet::new();
-            for num in 0..(rand::random::<usize>() % complexity) {
+            for num in 0..((rand::random::<usize>() + 1) % complexity) {
                 set.insert(generate_verification_method(doc.id.clone(), None, num));
             }
             doc.verification_method = Some(set);
@@ -112,7 +112,7 @@ mod util {
             let path = &mut [0; 10];
             path.try_fill(&mut rand::thread_rng())?;
             let path = Some(path.to_vec());
-            for num in 0..(rand::random::<usize>() % complexity) {
+            for num in 0..((rand::random::<usize>() + 1) % complexity) {
                 let vm = doc.verification_method.clone().unwrap();
                 let mut iter = vm.iter();
                 if rand::random::<bool>() && iter.len() > 0 {
@@ -239,7 +239,7 @@ mod util {
 
                 let mut v = Vec::new();
 
-                for _ in 0..rand::random::<usize>() % max_len {
+                for _ in 0..(((rand::random::<usize>() + 1) % max_len) + 1) {
                     let idx = rand::random::<usize>() % bytes.len();
                     v.push(bytes.get(idx).unwrap().clone());
                 }
@@ -252,7 +252,7 @@ mod util {
         chars.try_fill(&mut rand::thread_rng())?;
 
         let mut method_id = Vec::new();
-        for x in 0..rand::random::<usize>() % max_len {
+        for x in 0..(((rand::random::<usize>() + 1) % max_len) + 1) {
             method_id.push(chars[x]);
         }
 
