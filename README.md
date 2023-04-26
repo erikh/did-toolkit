@@ -6,9 +6,9 @@ you to build services and other tools that are compliant with the
 specification.
 
 The toolkit makes a sincere best-effort to maximize compliance with did-core,
-and eventually the did-web spec. Decentralized Identity Foundation specs such
-as [DWN](https://identity.foundation/decentralized-web-node/spec/) and other
-specs I hope will follow.
+and eventually the did-method-web spec. Decentralized Identity Foundation specs
+such as [DWN](https://identity.foundation/decentralized-web-node/spec/) and
+other specs I hope will follow.
 
 ### Currently Supported Features
 
