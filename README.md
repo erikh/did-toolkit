@@ -37,6 +37,7 @@ other specs I hope will follow.
         -   For attributes that also take a DID URL in place of a verification method, occasionally generates attribute properties which are simply links into other verification methods
     -   It also generates ASCII percent-encoded DIDs that are non-compliant with UTF-8
         -   Should break some implementations that use UTF-8 strings to parse these
+    -   Optional generation to CBOR (JSON is the default)
 
 ### Planned Features
 
