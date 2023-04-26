@@ -34,11 +34,23 @@ impl Serialize for URL {
     }
 }
 
-impl Visitor<'_> for URL {
+struct URLVisitor;
+
+impl Visitor<'_> for URLVisitor {
     type Value = URL;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("Expecting a decentralized identity URL")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        match URL::parse(&v) {
+            Ok(url) => Ok(url),
+            Err(e) => Err(E::custom(e)),
+        }
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
@@ -57,7 +69,7 @@ impl<'de> Deserialize<'de> for URL {
     where
         D: serde::Deserializer<'de>,
     {
-        deserializer.deserialize_str::<URL>(Default::default())
+        deserializer.deserialize_any(URLVisitor)
     }
 }
 

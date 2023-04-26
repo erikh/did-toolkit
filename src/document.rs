@@ -160,14 +160,17 @@ pub struct ServiceEndpoint {
     pub endpoint: ServiceEndpoints,
 }
 
-#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct VerificationMethods(pub BTreeSet<Either<VerificationMethod, URL>>);
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VerificationMethodEither(pub Either<VerificationMethod, URL>);
+
+#[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct VerificationMethods(pub BTreeSet<VerificationMethodEither>);
 
 impl VerificationMethods {
     // Takes an optional registry to lookup by URL
     pub fn valid(&self, registry: Option<&Registry>) -> Result<(), anyhow::Error> {
         for v in self.0.iter() {
-            match v {
+            match &v.0 {
                 Either::Left(vm) => vm.valid()?,
                 Either::Right(url) => {
                     if let Some(registry) = &registry {
@@ -278,7 +281,7 @@ impl Document {
 mod serde_support {
     use super::{
         AlsoKnownAs, Context, Controller, ServiceEndpointProperties, ServiceEndpoints, ServiceType,
-        ServiceTypes, VerificationMethodType, VerificationMethods,
+        ServiceTypes, VerificationMethod, VerificationMethodEither, VerificationMethodType,
     };
     use crate::{did::DID, url::URL};
     use either::Either;
@@ -409,65 +412,74 @@ mod serde_support {
         }
     }
 
-    struct VerificationMethodsVisitor;
-    impl<'de> Visitor<'de> for VerificationMethodsVisitor {
-        type Value = VerificationMethods;
+    struct VerificationMethodVisitor;
+    impl<'de> Visitor<'de> for VerificationMethodVisitor {
+        type Value = VerificationMethodEither;
 
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
             formatter.write_str("Expecting a set of verification methods or DID URLs")
         }
 
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
         where
-            A: serde::de::SeqAccess<'de>,
+            E: serde::de::Error,
         {
-            let mut set = BTreeSet::default();
+            match URL::parse(v) {
+                Ok(url) => Ok(VerificationMethodEither(Either::Right(url))),
+                Err(e) => Err(serde::de::Error::custom(e)),
+            }
+        }
 
-            while let Some(elem) = seq.next_element()? {
-                // FIXME probably not the best choice for a "generic" serializer, but I'm lazy
-                match serde_json::from_str(elem) {
-                    Ok(vm) => {
-                        set.insert(Either::Left(vm));
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::MapAccess<'de>,
+        {
+            let mut vm = VerificationMethod::default();
+
+            while let Some(key) = map.next_key::<String>()? {
+                match key.as_str() {
+                    "id" => vm.id = map.next_value()?,
+                    "controller" => vm.controller = map.next_value()?,
+                    "type" => vm.typ = map.next_value()?,
+                    "publicKeyJwk" => vm.public_key_jwk = map.next_value()?,
+                    "publicKeyMultibase" => vm.public_key_multibase = map.next_value()?,
+                    _ => {
+                        return Err(serde::de::Error::unknown_field(
+                            &key,
+                            &[
+                                "id",
+                                "controller",
+                                "type",
+                                "publicKeyJwk",
+                                "publicKeyMultibase",
+                            ],
+                        ))
                     }
-                    Err(_) => match URL::parse(elem) {
-                        Ok(url) => {
-                            set.insert(Either::Right(url));
-                        }
-                        Err(e) => return Err(serde::de::Error::custom(e)),
-                    },
                 }
             }
 
-            Ok(VerificationMethods(set))
+            Ok(VerificationMethodEither(Either::Left(vm)))
         }
     }
 
-    impl<'de> Deserialize<'de> for VerificationMethods {
+    impl<'de> Deserialize<'de> for VerificationMethodEither {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where
             D: serde::Deserializer<'de>,
         {
-            deserializer.deserialize_seq(VerificationMethodsVisitor)
+            deserializer.deserialize_any(VerificationMethodVisitor)
         }
     }
 
-    impl Serialize for VerificationMethods {
+    impl Serialize for VerificationMethodEither {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
         {
-            let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
-            for item in &self.0 {
-                match item {
-                    Either::Left(vm) => {
-                        seq.serialize_element(&vm)?;
-                    }
-                    Either::Right(url) => {
-                        seq.serialize_element(&url)?;
-                    }
-                }
+            match &self.0 {
+                Either::Left(vm) => vm.serialize(serializer),
+                Either::Right(url) => url.serialize(serializer),
             }
-            seq.end()
         }
     }
 

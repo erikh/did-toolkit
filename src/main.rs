@@ -52,13 +52,7 @@ fn main() -> Result<(), anyhow::Error> {
 mod util {
     use std::{collections::BTreeSet, path::PathBuf};
 
-    use did_toolkit::{
-        did::DID,
-        document::{AlsoKnownAs, Controller, Document, VerificationMethod, VerificationMethods},
-        jwk::JWK,
-        registry::Registry,
-        url::URLParameters,
-    };
+    use did_toolkit::prelude::*;
     use either::Either;
     use rand::Fill;
     use serde_json::json;
@@ -123,12 +117,10 @@ mod util {
                 let mut iter = vm.iter();
                 if rand::random::<bool>() && iter.len() > 0 {
                     let item = iter.nth(rand::random::<usize>() % iter.len()).unwrap();
-                    set.insert(Either::Right(item.id.clone()));
+                    set.insert(VerificationMethodEither(Either::Right(item.id.clone())));
                 } else {
-                    set.insert(Either::Left(generate_verification_method(
-                        doc.id.clone(),
-                        path.clone(),
-                        num,
+                    set.insert(VerificationMethodEither(Either::Left(
+                        generate_verification_method(doc.id.clone(), path.clone(), num),
                     )));
                 }
             }

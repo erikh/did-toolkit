@@ -21,11 +21,22 @@ impl Serialize for DID {
     }
 }
 
-impl Visitor<'_> for DID {
+struct DIDVisitor;
+impl Visitor<'_> for DIDVisitor {
     type Value = DID;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("Expecting a decentralized identity")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        match DID::parse(&v) {
+            Ok(did) => Ok(did),
+            Err(e) => Err(E::custom(e)),
+        }
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
@@ -44,7 +55,7 @@ impl<'de> Deserialize<'de> for DID {
     where
         D: serde::Deserializer<'de>,
     {
-        deserializer.deserialize_str::<DID>(Default::default())
+        deserializer.deserialize_any(DIDVisitor)
     }
 }
 
