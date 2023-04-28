@@ -52,12 +52,12 @@ fn main() -> Result<(), anyhow::Error> {
 }
 //
 mod util {
-    use std::{collections::BTreeSet, path::PathBuf};
-
-    use did_toolkit::prelude::*;
+    use did_toolkit::{prelude::*, string::url_encoded};
     use either::Either;
     use rand::Fill;
     use serde_json::json;
+    use std::{collections::BTreeSet, path::PathBuf};
+    use url::Url;
 
     pub fn create_identities<'a>(
         count: usize,
@@ -76,6 +76,8 @@ mod util {
             doc.verification_method = Some(set);
 
             link_vm_attrs(&mut doc, complexity)?;
+
+            doc.service = Some(create_service_defs(complexity)?);
 
             if let Err(e) = reg.insert(doc.clone()) {
                 eprintln!("Could not generate document {}; skipping: {}", doc.id, e);
@@ -107,6 +109,55 @@ mod util {
         }
 
         Ok(())
+    }
+
+    pub fn generate_random_url() -> Result<Url, anyhow::Error> {
+        let domains = &["example.net", "example.org", "example.com"];
+        let mut chars: [u8; 100] = [0; 100];
+        chars.try_fill(&mut rand::thread_rng())?;
+        let mut path = Vec::new();
+
+        for _ in 0..(rand::random::<usize>() % 30) {
+            path.push(chars[rand::random::<usize>() % 100]);
+        }
+
+        let path = url_encoded(&path).to_string();
+        Ok(Url::parse(&format!(
+            "https://{}/{}",
+            domains[rand::random::<usize>() % 3],
+            path,
+        ))?)
+    }
+
+    pub fn create_service_defs(
+        complexity: usize,
+    ) -> Result<BTreeSet<ServiceEndpoint>, anyhow::Error> {
+        let mut set = BTreeSet::default();
+
+        for _ in 0..((rand::random::<usize>() + 1) % complexity) {
+            let se = ServiceEndpoint {
+                id: generate_random_url()?,
+                typ: ServiceTypes(Either::Left(ServiceType::LinkedDomains)),
+                endpoint: if rand::random::<bool>() {
+                    ServiceEndpoints(Either::Left(generate_random_url()?))
+                } else {
+                    let mut set = BTreeSet::default();
+
+                    for _ in 0..((rand::random::<usize>() + 1) % complexity) {
+                        set.insert(generate_random_url()?);
+                    }
+
+                    ServiceEndpoints(Either::Right(ServiceEndpointProperties {
+                        origins: Some(set),
+                        registries: None,
+                    }))
+                },
+            };
+
+            set.insert(se);
+        }
+
+        Ok(set)
     }
 
     pub fn link_vm_attrs(doc: &mut Document, complexity: usize) -> Result<(), anyhow::Error> {
