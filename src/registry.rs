@@ -12,7 +12,7 @@ use std::{
 };
 use url::Url;
 
-/// Registry is a basic, in-memory [DID] registry that is able to load documents directly as well as
+/// Registry is a basic, in-memory [Document] registry that is able to load documents directly as well as
 /// cross-reference them in some ways. It can also optionally fetch remote documents and cache them
 /// as a part of its implementation. Documents can be loaded via the JSON or CBOR formats. JSON
 /// loading is provided by [serde_json] and CBOR is provided by [ciborium].
@@ -176,7 +176,7 @@ impl Registry {
     }
 
     /// For a given [DID], determine if another [DID] is designated as a controller. Follows the
-    /// rules specified in https://www.w3.org/TR/did-core/#did-controller. Will fail if either
+    /// rules specified in <https://www.w3.org/TR/did-core/#did-controller>. Will fail if either
     /// [DID] is missing from the registry.
     pub fn controls(&self, did: &DID, controller: &DID) -> Result<bool, anyhow::Error> {
         if let Some(did_doc) = self.get(did) {
@@ -211,7 +211,7 @@ impl Registry {
 
     /// For two given [DID]s, determine if they can be treated the same according to the rules for
     /// the `alsoKnownAs` property, which you can read here:
-    /// https://www.w3.org/TR/did-core/#also-known-as
+    /// <https://www.w3.org/TR/did-core/#also-known-as>
     ///
     /// Both [DID]s must exist in the registry, otherwise an error will be returned.
     pub fn equivalent_to_did(&mut self, did: &DID, other: &DID) -> Result<bool, anyhow::Error> {

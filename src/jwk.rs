@@ -2,17 +2,17 @@ use jsonwebkey::{JsonWebKey, Key};
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
-pub struct JWK(pub JsonWebKey);
-
-/// Encapsulation of JSON Web Keys, provided by the [jsonwebkey] library underneath. Serialization
+/// Encapsulation of JSON Web Keys, provided by the [jsonwebkey] crate underneath. Serialization
 /// omits the private key fields deliberately according to DID spec, as it is assumed for these
 /// purposes it will be used in a decentralized identity document.
 ///
-/// See https://www.w3.org/TR/did-core/#verification-material for more information.
+/// See <https://www.w3.org/TR/did-core/#verification-material> for more information.
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub struct JWK(pub JsonWebKey);
+
 impl JWK {
-    // Creates a new JWK and generates a key for it. The underlying key will have private key
-    // material.
+    /// Creates a new JWK and generates a key for it. The underlying key will have private key
+    /// material.
     pub fn new() -> Self {
         JWK(JsonWebKey::new(Key::generate_p256()))
     }

@@ -103,11 +103,11 @@ impl VerificationMethod {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 /// It's important to note here that the document that describes these is not very well formed.
-/// https://www.w3.org/TR/did-spec-registries/#service-types
+/// <https://www.w3.org/TR/did-spec-registries/#service-types>
 pub enum ServiceType {
-    /// https://www.w3.org/TR/did-spec-registries/#credentialregistry
+    /// <https://www.w3.org/TR/did-spec-registries/#credentialregistry>
     CredentialRegistry,
-    /// https://identity.foundation/.well-known/resources/did-configuration/#linked-domain-service-endpoint
+    /// <https://identity.foundation/.well-known/resources/did-configuration/#linked-domain-service-endpoint>
     LinkedDomains,
     // there are others (such as DIDCommMessaging) that I did not supply here because they don't
     // appear to be finished.
@@ -226,7 +226,7 @@ impl Default for Context {
 
 /// The encapsulation of a decentralized identity document, or DID. This conforms to the did-core
 /// spec in totality, according to the rules defined in
-/// https://www.w3.org/TR/did-core/#core-properties. Divergence from the spec will be considered a
+/// <https://www.w3.org/TR/did-core/#core-properties>. Divergence from the spec will be considered a
 /// bug, unless otherwise noted.
 ///
 /// Please see the individual properties regarding their use. Types in this module will remain
@@ -261,39 +261,39 @@ pub struct Document {
     /// [Registry]. This is called the "DID Subject" in the specification.
     pub id: DID,
     /// alsoKnownAs determines equivalence for two documents for all purposes. See
-    /// https://www.w3.org/TR/did-core/#also-known-as for more.
+    /// <https://www.w3.org/TR/did-core/#also-known-as> for more.
     #[serde(rename = "alsoKnownAs", skip_serializing_if = "Option::is_none")]
     pub also_known_as: Option<AlsoKnownAs>,
     // controller determines if another [DID] is capable of taking actions for this [DID]. See
-    // https://www.w3.org/TR/did-core/#did-controller for more.
+    // <https://www.w3.org/TR/did-core/#did-controller> for more.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub controller: Option<Controller>,
     /// [VerificationMethod]s are used to verify the identity claiming this document. See
-    /// https://www.w3.org/TR/did-core/#verification-methods for more. Most following properties
+    /// <https://www.w3.org/TR/did-core/#verification-methods> for more. Most following properties
     /// that use [VerificationMethods] may refer to this portion of the document by [URL] to add
     /// additional capabilities to a specific [VerificationMethod].
     #[serde(rename = "verificationMethod", skip_serializing_if = "Option::is_none")]
     pub verification_method: Option<BTreeSet<VerificationMethod>>,
     /// This set of [VerificationMethods] corresponds to authentication.
-    /// https://www.w3.org/TR/did-core/#authentication
+    /// <https://www.w3.org/TR/did-core/#authentication>
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authentication: Option<VerificationMethods>,
     /// This set of [VerificationMethods] corresponds to assertions.
-    /// https://www.w3.org/TR/did-core/#assertion
+    /// <https://www.w3.org/TR/did-core/#assertion>
     #[serde(rename = "assertionMethod", skip_serializing_if = "Option::is_none")]
     pub assertion_method: Option<VerificationMethods>,
     /// This set of [VerificationMethods] refers to key agreement.
-    /// https://www.w3.org/TR/did-core/#key-agreement
+    /// <https://www.w3.org/TR/did-core/#key-agreement>
     #[serde(rename = "keyAgreement", skip_serializing_if = "Option::is_none")]
     pub key_agreement: Option<VerificationMethods>,
     /// This set of [VerificationMethods] refers to capability invocation.
-    /// https://www.w3.org/TR/did-core/#capability-invocation
+    /// <https://www.w3.org/TR/did-core/#capability-invocation>
     #[serde(
         rename = "capabilityInvocation",
         skip_serializing_if = "Option::is_none"
     )]
     /// This set of [VerificationMethods] refers to capability delegation.
-    /// https://www.w3.org/TR/did-core/#capability-delegation
+    /// <https://www.w3.org/TR/did-core/#capability-delegation>
     pub capability_invocation: Option<VerificationMethods>,
     #[serde(
         rename = "capabilityDelegation",
@@ -301,7 +301,7 @@ pub struct Document {
     )]
     pub capability_delegation: Option<VerificationMethods>,
     /// This portion of the document refers to affected services. Services are specially provided
-    /// by the "DID registry": https://www.w3.org/TR/did-spec-registries/ and rely on enums to
+    /// by the "DID registry": <https://www.w3.org/TR/did-spec-registries/> and rely on enums to
     /// determine how the service is treated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service: Option<BTreeSet<ServiceEndpoint>>,

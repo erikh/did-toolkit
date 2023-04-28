@@ -6,12 +6,12 @@ use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::fmt::Display;
 
-/// A DID is a decentralized identity according to https://www.w3.org/TR/did-core/#did-syntax. A
+/// A DID is a decentralized identity according to <https://www.w3.org/TR/did-core/#did-syntax>. A
 /// DID internally is represented as a byte array that is percent-encoded on demand according to
 /// the rules defined in that document, as well as validated in some instances with regards to
 /// encoding requirements. DIDs are not required to be UTF-8 compliant in the ID portion, and all
 /// bytes that fall outside of a normal alphanumeric ASCII range are percent-encoded, with a few
-/// exceptions. The internal types are Vec<u8> for malleability but this may change to \[u8] in the
+/// exceptions. The internal types are [`Vec<u8>`] for malleability but this may change to \[u8] in the
 /// future.
 ///
 /// DIDs must have both a non-empty name and ID portion according to this interpretation of the

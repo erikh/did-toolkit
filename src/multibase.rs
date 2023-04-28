@@ -5,7 +5,7 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 
 /// Encapsulates a public key in Multibase format (see
-/// https://datatracker.ietf.org/doc/html/draft-multiformats-multibase-03). Multibase is a new
+/// <https://datatracker.ietf.org/doc/html/draft-multiformats-multibase-03>). Multibase is a new
 /// compact, serialization-friendly format that is still a draft standard and thus, subject to
 /// change. We provide multibase formatting via the [multibase] crate. Private keys are not
 /// accounted for.

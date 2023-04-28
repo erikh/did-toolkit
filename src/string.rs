@@ -4,7 +4,7 @@ use anyhow::anyhow;
 /// that you use this function. Instead, feed the byte array directly to the member data for the
 /// type you wish to have encoded, it will do it automatically on output.
 ///
-/// Encode portions of the URL according to https://www.w3.org/TR/did-core/#did-syntax
+/// Encode portions of the URL according to <https://www.w3.org/TR/did-core/#did-syntax>
 #[inline]
 pub fn url_encoded(input: &[u8]) -> String {
     url_encoded_internal(input, true)
@@ -43,7 +43,7 @@ fn url_encoded_internal(input: &[u8], escape_colon: bool) -> String {
     String::from_utf8(ret).unwrap()
 }
 
-/// Decode portions of the URL according to https://www.w3.org/TR/did-core/#did-syntax
+/// Decode portions of the URL according to <https://www.w3.org/TR/did-core/#did-syntax>
 #[inline]
 pub(crate) fn url_decoded(s: &[u8]) -> Vec<u8> {
     let mut hexval: u8 = 0;

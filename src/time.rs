@@ -8,9 +8,9 @@ use time::{
 static VERSION_TIME_FORMAT: &[FormatItem<'static>] =
     format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]Z");
 
-/// VersionTime is a specific section of the query string in DID [URL]s. It is required to be a
-/// certain format, based in UTC. See https://www.w3.org/TR/did-core/#did-parameters for more
-/// information.
+/// VersionTime is a specific section of the query string in DID [crate::url::URL]s. It is required to be a
+/// certain format, based in UTC. See <https://www.w3.org/TR/did-core/#did-parameters> for more
+/// information. Formatting is provided by the [time] crate.
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
 pub struct VersionTime(pub OffsetDateTime);
 
