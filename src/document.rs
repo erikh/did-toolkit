@@ -87,6 +87,8 @@ impl Hash for VerificationMethod {
 }
 
 impl VerificationMethod {
+    /// Determines if a verification method is valid. To be valid, it must only contain one public
+    /// key.
     pub fn valid(&self) -> Result<(), anyhow::Error> {
         if self.public_key_jwk.is_some() && self.public_key_multibase.is_some() {
             return Err(anyhow!(
@@ -100,12 +102,12 @@ impl VerificationMethod {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-// it's important to note here that the document that describes these is not very well formed.
-// https://www.w3.org/TR/did-spec-registries/#service-types
+/// It's important to note here that the document that describes these is not very well formed.
+/// https://www.w3.org/TR/did-spec-registries/#service-types
 pub enum ServiceType {
-    // https://www.w3.org/TR/did-spec-registries/#credentialregistry
+    /// https://www.w3.org/TR/did-spec-registries/#credentialregistry
     CredentialRegistry,
-    // https://identity.foundation/.well-known/resources/did-configuration/#linked-domain-service-endpoint
+    /// https://identity.foundation/.well-known/resources/did-configuration/#linked-domain-service-endpoint
     LinkedDomains,
     // there are others (such as DIDCommMessaging) that I did not supply here because they don't
     // appear to be finished.
@@ -133,8 +135,6 @@ impl FromStr for ServiceType {
 }
 
 #[derive(Clone, Default, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-// a lumping of all the one off garbage in this part of the spec.
-// seriously, I think someone at the w3c thinks JSON is a programming language
 pub struct ServiceEndpointProperties {
     // only used for LinkedDomains
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -167,7 +167,8 @@ pub struct VerificationMethodEither(pub Either<VerificationMethod, URL>);
 pub struct VerificationMethods(pub BTreeSet<VerificationMethodEither>);
 
 impl VerificationMethods {
-    // Takes an optional registry to lookup by URL
+    /// Determines if the set of verification methods is valid. Takes an optional registry to
+    /// lookup by [URL].
     pub fn valid(&self, registry: Option<&Registry>) -> Result<(), anyhow::Error> {
         for v in self.0.iter() {
             match &v.0 {
@@ -223,39 +224,91 @@ impl Default for Context {
     }
 }
 
+/// The encapsulation of a decentralized identity document, or DID. This conforms to the did-core
+/// spec in totality, according to the rules defined in
+/// https://www.w3.org/TR/did-core/#core-properties. Divergence from the spec will be considered a
+/// bug, unless otherwise noted.
+///
+/// Please see the individual properties regarding their use. Types in this module will remain
+/// undocumented for brevity's sake, with the exception of methods that live on those types.
+///
+/// One notable thing in this implementation is use of the [either] crate with wrapping types. This
+/// is used to aid in the (de)-serialization of documents properties that can consume multiple
+/// switched types. Unfortunately, the spec is not very kind to users of statically-typed
+/// languages, so we must take extra precautions to ensure all valid documents can be parsed. To
+/// utilize most of these types, there may be an "either wrapper" as well as the [either::Either]
+/// enum itself to encapsulate a type. For example, [AlsoKnownAs] encapsulates [AlsoKnownAsEither]
+/// as a [BTreeSet] which then encapsulates [either::Either] types depending on which style of
+/// attribute was used, as [DID]s and hypertext [url::Url]s can be used interchangeably. This
+/// approach reduces memory usage and computation time by storing structs instead of raw strings
+/// and "figuring it out later".
+///
+/// JSON-LD attributes (`@context`, specifically), are accounted for but not used by this
+/// implementation. This allows you to generate documents and consume ones that follow the JSON-LD
+/// specification but does not attempt to validate the document using the JSON-LD schema. See the
+/// crate's README for more information regarding this decision.
+///
+/// [serde] crate implementations are available for all types, to ensure valid [serde_json] and
+/// [ciborium] I/O, but other formats that [serde] supports should be technically possible to
+/// support without issue.
+///
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Document {
+    /// JSON-LD @context support
     #[serde(rename = "@context", skip_serializing_if = "Option::is_none")]
     pub context: Option<Context>,
+    /// The DID that this document corresponds to. Will be used as the key when storing in a
+    /// [Registry]. This is called the "DID Subject" in the specification.
     pub id: DID,
+    /// alsoKnownAs determines equivalence for two documents for all purposes. See
+    /// https://www.w3.org/TR/did-core/#also-known-as for more.
     #[serde(rename = "alsoKnownAs", skip_serializing_if = "Option::is_none")]
     pub also_known_as: Option<AlsoKnownAs>,
+    // controller determines if another [DID] is capable of taking actions for this [DID]. See
+    // https://www.w3.org/TR/did-core/#did-controller for more.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub controller: Option<Controller>,
+    /// [VerificationMethod]s are used to verify the identity claiming this document. See
+    /// https://www.w3.org/TR/did-core/#verification-methods for more. Most following properties
+    /// that use [VerificationMethods] may refer to this portion of the document by [URL] to add
+    /// additional capabilities to a specific [VerificationMethod].
     #[serde(rename = "verificationMethod", skip_serializing_if = "Option::is_none")]
     pub verification_method: Option<BTreeSet<VerificationMethod>>,
+    /// This set of [VerificationMethods] corresponds to authentication.
+    /// https://www.w3.org/TR/did-core/#authentication
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authentication: Option<VerificationMethods>,
+    /// This set of [VerificationMethods] corresponds to assertions.
+    /// https://www.w3.org/TR/did-core/#assertion
     #[serde(rename = "assertionMethod", skip_serializing_if = "Option::is_none")]
     pub assertion_method: Option<VerificationMethods>,
+    /// This set of [VerificationMethods] refers to key agreement.
+    /// https://www.w3.org/TR/did-core/#key-agreement
     #[serde(rename = "keyAgreement", skip_serializing_if = "Option::is_none")]
     pub key_agreement: Option<VerificationMethods>,
+    /// This set of [VerificationMethods] refers to capability invocation.
+    /// https://www.w3.org/TR/did-core/#capability-invocation
     #[serde(
         rename = "capabilityInvocation",
         skip_serializing_if = "Option::is_none"
     )]
+    /// This set of [VerificationMethods] refers to capability delegation.
+    /// https://www.w3.org/TR/did-core/#capability-delegation
     pub capability_invocation: Option<VerificationMethods>,
     #[serde(
         rename = "capabilityDelegation",
         skip_serializing_if = "Option::is_none"
     )]
     pub capability_delegation: Option<VerificationMethods>,
+    /// This portion of the document refers to affected services. Services are specially provided
+    /// by the "DID registry": https://www.w3.org/TR/did-spec-registries/ and rely on enums to
+    /// determine how the service is treated.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service: Option<BTreeSet<ServiceEndpoint>>,
 }
 
 impl Document {
-    // takes an optional registry to resolve URLs
+    /// Determines if a document is valid. Takes an optional registry to resolve [URL]s
     pub fn valid(&self, registry: Option<&Registry>) -> Result<(), anyhow::Error> {
         if let Some(vm) = &self.verification_method {
             for v in vm.iter() {

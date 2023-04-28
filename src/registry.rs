@@ -35,12 +35,13 @@ use url::Url;
 /// let mut reg = Registry::default();
 /// let did = DID::parse("did:mymethod:alice").unwrap();
 /// let did2 = DID::parse("did:mymethod:bob").unwrap();
-///
-/// reg.insert(Document{
+/// let doc = Document{
 ///   id: did.clone(),
 ///   controller: Some(Controller(Either::Left(did2.clone()))),
 ///   ..Default::default()
-/// });
+/// };
+///
+/// reg.insert(doc.clone());
 ///
 /// reg.insert(Document{
 ///   id: did2.clone(),
@@ -48,6 +49,8 @@ use url::Url;
 /// });
 ///
 /// assert!(reg.controls(&did, &did2).unwrap());
+/// assert_eq!(reg[0], doc);
+/// assert_eq!(reg[&did], doc);
 /// ```
 ///
 #[derive(Default)]
