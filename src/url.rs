@@ -7,12 +7,54 @@ use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{collections::BTreeMap, fmt::Display};
 
+/// DID URL handling, including parsing, (de)-serialization, and manipulation according to
+/// https://www.w3.org/TR/did-core/#did-url-syntax.
+///
+/// DID URLs are nothing like hypertext URLs and it is strongly cautioned that you do not treat
+/// them as such.
+///
+/// The struct includes a [DID] as well as optional [URLParameters] to extend the [DID]. Converting
+/// to string, formatting for display, or serialization will cause the URL to be generated.
+///
+/// ```
+/// use did_toolkit::prelude::*;
+///
+/// let url = URL::parse("did:mymethod:alice/path?service=foo#fragment").unwrap();
+/// assert_eq!(url, URL {
+///     did: DID::parse("did:mymethod:alice").unwrap(),
+///     parameters: Some(URLParameters{
+///         path: Some("path".as_bytes().to_vec()),
+///         fragment: Some("fragment".as_bytes().to_vec()),
+///         service: Some("foo".to_string()),
+///         ..Default::default()
+///     })
+/// });
+/// let url = URL {
+///     did: DID::parse("did:mymethod:bob").unwrap(),
+///     parameters: Some(URLParameters{
+///         path: Some("path".as_bytes().to_vec()),
+///         fragment: Some("fragment".as_bytes().to_vec()),
+///         service: Some("bar".to_string()),
+///         version_id: Some("1.0".to_string()),
+///         ..Default::default()
+///     })
+/// };
+///
+/// assert_eq!(url.to_string(), "did:mymethod:bob/path?service=bar&versionId=1.0#fragment");
+/// ```
 #[derive(Clone, Default, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
 pub struct URL {
     pub did: DID,
     pub parameters: Option<URLParameters>,
 }
 
+/// A struct to encapsulate URL parameters. All members of this struct are optional, liberal use of
+/// `..Default::default()` is recommended to couch the extra fields.
+///
+/// Many parts of this struct are concatenated into the query string, which has unique escaping
+/// rules for each special parameter (see https://www.w3.org/TR/did-core/#did-parameters). These
+/// are handled according to spec and may take String or Vec<u8> depending on needs. Query members
+/// that do not match a special field are stuffed in the `extra_query` bucket.
 #[derive(Clone, Default, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
 pub struct URLParameters {
     pub path: Option<Vec<u8>>,
@@ -154,6 +196,7 @@ fn before(s: &str, left: char, right: char) -> bool {
 }
 
 impl URL {
+    /// Parse a DID URL from string. See [URL] for more information.
     pub fn parse(s: &str) -> Result<Self, anyhow::Error> {
         match s.strip_prefix("did:") {
             Some(s) => match s.split_once(':') {
@@ -179,6 +222,7 @@ impl URL {
         }
     }
 
+    /// Parse and join a DID URL. If you want to join a URL from [URLParameters], see [DID::join].
     pub fn join(&self, s: &str) -> Result<Self, anyhow::Error> {
         if s.is_empty() {
             return Err(anyhow!("relative DID URL is empty"));
@@ -194,6 +238,7 @@ impl URL {
         }
     }
 
+    /// Converts to the underlying [DID].
     pub fn to_did(&self) -> DID {
         DID {
             name: self.did.name.clone(),

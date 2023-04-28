@@ -6,6 +6,31 @@ use anyhow::anyhow;
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::fmt::Display;
 
+/// A DID is a decentralized identity according to https://www.w3.org/TR/did-core/#did-syntax. A
+/// DID internally is represented as a byte array that is percent-encoded on demand according to
+/// the rules defined in that document, as well as validated in some instances with regards to
+/// encoding requirements. DIDs are not required to be UTF-8 compliant in the ID portion, and all
+/// bytes that fall outside of a normal alphanumeric ASCII range are percent-encoded, with a few
+/// exceptions. The internal types are Vec<u8> for malleability but this may change to \[u8] in the
+/// future.
+///
+/// DIDs must have both a non-empty name and ID portion according to this interpretation of the
+/// spec. They must start with `did:` and will be generated as such both in string conversion and
+/// serialization steps. De-serialization also runs through the same checks and conversions.
+///
+/// ```
+/// use did_toolkit::prelude::*;
+///
+/// let did = DID::parse("did:mymethod:alice").unwrap();
+/// assert_eq!(String::from_utf8(did.name).unwrap(), "mymethod");
+/// assert_eq!(String::from_utf8(did.id).unwrap(), "alice");
+///
+/// let did = DID {
+///     name: "mymethod".as_bytes().to_vec(),
+///     id: "alice".as_bytes().to_vec(),
+/// };
+/// assert_eq!(did.to_string(), "did:mymethod:alice");
+/// ```
 #[derive(Clone, Hash, Default, Debug, PartialOrd, Ord, Eq, PartialEq)]
 pub struct DID {
     pub name: Vec<u8>,
@@ -70,6 +95,7 @@ impl Display for DID {
 }
 
 impl DID {
+    /// Parse a DID from a string. See top-level type documentation for information on formats.
     pub fn parse(s: &str) -> Result<Self, anyhow::Error> {
         match s.strip_prefix("did:") {
             Some(s) => match s.split_once(':') {
@@ -94,6 +120,19 @@ impl DID {
         }
     }
 
+    /// When provided with URL parameters, generates a DID URL. These are different from hypertext
+    /// URLs and should be handled differently.
+    ///
+    /// ```
+    /// use did_toolkit::prelude::*;
+    ///
+    /// let did = DID::parse("did:mymethod:alice").unwrap();
+    /// let url = did.join(URLParameters{
+    ///     fragment: Some("key-1".as_bytes().to_vec()),
+    ///     ..Default::default()
+    /// });
+    /// assert_eq!(url.to_string(), "did:mymethod:alice#key-1");
+    /// ```
     pub fn join(&self, parameters: URLParameters) -> URL {
         URL {
             did: self.clone(),

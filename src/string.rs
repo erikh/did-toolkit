@@ -1,5 +1,9 @@
 use anyhow::anyhow;
 
+/// Implements percent-encoding of byte arrays. It is not suggested, despite it's public access,
+/// that you use this function. Instead, feed the byte array directly to the member data for the
+/// type you wish to have encoded, it will do it automatically on output.
+///
 /// Encode portions of the URL according to https://www.w3.org/TR/did-core/#did-syntax
 #[inline]
 pub fn url_encoded(input: &[u8]) -> String {
@@ -8,7 +12,7 @@ pub fn url_encoded(input: &[u8]) -> String {
 
 #[inline]
 /// Encode the method_id, which has slightly different rules surrounding the colon.
-pub fn method_id_encoded(input: &[u8]) -> String {
+pub(crate) fn method_id_encoded(input: &[u8]) -> String {
     url_encoded_internal(input, false)
 }
 
@@ -41,7 +45,7 @@ fn url_encoded_internal(input: &[u8], escape_colon: bool) -> String {
 
 /// Decode portions of the URL according to https://www.w3.org/TR/did-core/#did-syntax
 #[inline]
-pub fn url_decoded(s: &[u8]) -> Vec<u8> {
+pub(crate) fn url_decoded(s: &[u8]) -> Vec<u8> {
     let mut hexval: u8 = 0;
     let mut hexleft = true;
     let mut ret = Vec::new();
@@ -79,7 +83,7 @@ pub fn url_decoded(s: &[u8]) -> Vec<u8> {
 /// https://www.w3.org/TR/did-core/#did-syntax. Return an error if any characters fall outside of
 /// it.
 #[inline]
-pub fn validate_method_name(s: &[u8]) -> Result<(), anyhow::Error> {
+pub(crate) fn validate_method_name(s: &[u8]) -> Result<(), anyhow::Error> {
     for idx in s {
         if !(&0x61..=&0x7a).contains(&idx) && !('0'..='9').contains(&(*idx as char)) {
             return Err(anyhow!(
