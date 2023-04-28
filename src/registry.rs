@@ -12,6 +12,44 @@ use std::{
 };
 use url::Url;
 
+/// Registry is a basic, in-memory [DID] registry that is able to load documents directly as well as
+/// cross-reference them in some ways. It can also optionally fetch remote documents and cache them
+/// as a part of its implementation. Documents can be loaded via the JSON or CBOR formats. JSON
+/// loading is provided by [serde_json] and CBOR is provided by [ciborium].
+///
+/// [Document] validity checks (via [Document::valid]) are not performed at loading time. [DID]
+/// keying is automatically performed based on the [Document] `id` property.
+///
+/// Accessing the registry is provided by a few methods in the implementation, but can also be
+/// indexed by [DID] reference or [usize]. Iterators are provided as ordered pairs via
+/// [Registry::iter]. The underlying storage is a [BTreeMap] and awareness of the performance
+/// characteristics of this implementation may be important for larger registries.
+///
+/// There are examples in the apporpriate part of this crate which go into loading documents from
+/// disk.
+///
+/// ```
+/// use did_toolkit::prelude::*;
+/// use either::Either;
+///
+/// let mut reg = Registry::default();
+/// let did = DID::parse("did:mymethod:alice").unwrap();
+/// let did2 = DID::parse("did:mymethod:bob").unwrap();
+///
+/// reg.insert(Document{
+///   id: did.clone(),
+///   controller: Some(Controller(Either::Left(did2.clone()))),
+///   ..Default::default()
+/// });
+///
+/// reg.insert(Document{
+///   id: did2.clone(),
+///   ..Default::default()
+/// });
+///
+/// assert!(reg.controls(&did, &did2).unwrap());
+/// ```
+///
 #[derive(Default)]
 pub struct Registry {
     r: BTreeMap<DID, Document>,
@@ -55,6 +93,8 @@ impl IndexMut<usize> for Registry {
 }
 
 impl Registry {
+    /// Create a [Registry] with the remote cache enabled. Use [Registry::default] for one that
+    /// does not use the remote cache.
     pub fn new_with_remote_cache() -> Self {
         Self {
             r: BTreeMap::new(),
@@ -62,6 +102,7 @@ impl Registry {
         }
     }
 
+    /// Load a document from the filesystem as JSON.
     pub fn load_document(&mut self, filename: PathBuf) -> Result<(), anyhow::Error> {
         let mut file = std::fs::OpenOptions::new();
         file.read(true);
@@ -70,6 +111,7 @@ impl Registry {
         self.insert(doc)
     }
 
+    /// Load a document from the filesystem as CBOR.
     pub fn load_document_cbor(&mut self, filename: PathBuf) -> Result<(), anyhow::Error> {
         let mut file = std::fs::OpenOptions::new();
         file.read(true);
@@ -78,14 +120,18 @@ impl Registry {
         self.insert(doc)
     }
 
+    /// Get an iterator into the ordered pairs of the registry.
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = (&DID, &Document)> + 'a {
         self.r.iter()
     }
 
+    /// Compute the size of the registry.
     pub fn len(&self) -> usize {
         self.r.len()
     }
 
+    /// Insert a document into the registry. The registry will automatically be keyed by the
+    /// [Document]'s `id` property. Will fail if the document already exists.
     pub fn insert(&mut self, doc: Document) -> Result<(), anyhow::Error> {
         if self.r.contains_key(&doc.id) {
             return Err(anyhow!("DID {} already exists in registry", doc.id));
@@ -95,18 +141,23 @@ impl Registry {
         Ok(())
     }
 
+    /// Remove a document by [DID].
     pub fn remove(&mut self, did: &DID) -> Option<Document> {
         self.r.remove(did)
     }
 
+    /// Retreive a document by [DID].
     pub fn get(&self, did: &DID) -> Option<Document> {
         self.r.get(did).cloned()
     }
 
+    /// Retrieve a document by DID [URL].
     pub fn follow(&self, url: URL) -> Option<Document> {
         self.get(&url.to_did())
     }
 
+    /// Looks up a [VerificationMethod] by [URL] for the [DID]. There must be a
+    /// [VerificationMethod] in the [DID]'s document, otherwise this will return [None].
     pub fn verification_method_for_url(&self, did: &DID, url: URL) -> Option<VerificationMethod> {
         if let Some(doc) = self.get(did) {
             if let Some(vm) = doc.verification_method {
@@ -121,6 +172,9 @@ impl Registry {
         None
     }
 
+    /// For a given [DID], determine if another [DID] is designated as a controller. Follows the
+    /// rules specified in https://www.w3.org/TR/did-core/#did-controller. Will fail if either
+    /// [DID] is missing from the registry.
     pub fn controls(&self, did: &DID, controller: &DID) -> Result<bool, anyhow::Error> {
         if let Some(did_doc) = self.get(did) {
             if did == controller {
@@ -152,6 +206,11 @@ impl Registry {
         Ok(false)
     }
 
+    /// For two given [DID]s, determine if they can be treated the same according to the rules for
+    /// the `alsoKnownAs` property, which you can read here:
+    /// https://www.w3.org/TR/did-core/#also-known-as
+    ///
+    /// Both [DID]s must exist in the registry, otherwise an error will be returned.
     pub fn equivalent_to_did(&mut self, did: &DID, other: &DID) -> Result<bool, anyhow::Error> {
         // there is probably a better way to represent this stew with Iterator methods, but I
         // cannot be fucked to deal with that right now.
