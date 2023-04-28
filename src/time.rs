@@ -8,6 +8,9 @@ use time::{
 static VERSION_TIME_FORMAT: &[FormatItem<'static>] =
     format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]Z");
 
+/// VersionTime is a specific section of the query string in DID [URL]s. It is required to be a
+/// certain format, based in UTC. See https://www.w3.org/TR/did-core/#did-parameters for more
+/// information.
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, Eq, PartialEq)]
 pub struct VersionTime(pub OffsetDateTime);
 
@@ -68,6 +71,7 @@ impl<'de> Deserialize<'de> for VersionTime {
 }
 
 impl VersionTime {
+    /// Parse a [VersionTime] from string.
     pub fn parse(s: &str) -> Result<Self, anyhow::Error> {
         match PrimitiveDateTime::parse(s, VERSION_TIME_FORMAT) {
             Ok(dt) => Ok(VersionTime(dt.assume_utc())),
