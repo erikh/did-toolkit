@@ -3,8 +3,11 @@ name = "did-toolkit"
 version = "0.1.0"
 edition = "2021"
 readme = "README.md"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "did-toolkit is a spec-compliant implementation of did-core, W3C's 'Decentralized Identity Documents'"
+authors = ["Erik Hollensbe <erik+github@hollensbe.org>"]
+license = "MIT"
+homepage = "https://git.juici.ly/erikh/did-toolkit"
+repository = "https://git.juici.ly/erikh/did-toolkit"
 
 [dependencies]
 anyhow = "^1.0"
