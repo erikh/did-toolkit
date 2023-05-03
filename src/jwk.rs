@@ -1,32 +1,30 @@
-use jsonwebkey::{JsonWebKey, Key};
+use josekit::jwk::{alg::ec::EcCurve, Jwk};
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
-/// Encapsulation of JSON Web Keys, provided by the [jsonwebkey] crate underneath. Serialization
+/// Encapsulation of JSON Web Keys, provided by the [josekit] crate underneath. Serialization
 /// omits the private key fields deliberately according to DID spec, as it is assumed for these
 /// purposes it will be used in a decentralized identity document.
 ///
 /// See <https://www.w3.org/TR/did-core/#verification-material> for more information.
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
-pub struct JWK(pub JsonWebKey);
+pub struct JWK(pub Jwk);
 
 impl JWK {
     /// Creates a new JWK and generates a key for it. The underlying key will have private key
     /// material.
-    pub fn new() -> Self {
-        JWK(JsonWebKey::new(Key::generate_p256()))
+    pub fn new() -> Result<Self, anyhow::Error> {
+        Ok(JWK(Jwk::generate_ec_key(EcCurve::P256)?))
     }
 
-    /// Creates a new JWK struct from an existing [jsonwebkey::Key].
-    pub fn new_from_key(key: jsonwebkey::Key) -> Self {
-        JWK(JsonWebKey::new(key))
+    /// Creates a new JWK struct from an existing series of bytes
+    pub fn new_from_bytes(bytes: &[u8]) -> Result<Self, anyhow::Error> {
+        Ok(JWK(Jwk::from_bytes(bytes)?))
     }
 
     /// Erases the private key material and creates a new struct from the result.
-    pub fn to_public_only(&self) -> Self {
-        JWK(JsonWebKey::new(
-            self.0.key.to_public().unwrap().into_owned(),
-        ))
+    pub fn to_public_only(&self) -> Result<Self, anyhow::Error> {
+        Ok(JWK(self.0.to_public_key()?))
     }
 }
 
@@ -35,13 +33,16 @@ impl Serialize for JWK {
     where
         S: serde::Serializer,
     {
-        self.to_public_only().0.serialize(serializer)
+        match self.to_public_only() {
+            Ok(public) => public.0.serialize(serializer),
+            Err(e) => Err(serde::ser::Error::custom(e)),
+        }
     }
 }
 
 impl Hash for JWK {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.key_id.hash(state)
+        self.0.key_id().hash(state)
     }
 }
 

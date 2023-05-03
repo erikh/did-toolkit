@@ -265,7 +265,7 @@ mod util {
                 ..Default::default()
             }),
             controller: did.clone(),
-            public_key_jwk: Some(JWK::new()),
+            public_key_jwk: Some(JWK::new().unwrap()),
             // TODO generate a keypair
             ..Default::default()
         }
