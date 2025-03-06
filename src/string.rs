@@ -110,11 +110,11 @@ mod tests {
     fn test_battery_encode() {
         use rand::Fill;
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         for _ in 1..100000 {
             let mut array: [u8; 100] = [0; 100];
-            array.try_fill(&mut rng).unwrap();
+            array.fill(&mut rng);
             let encoded = super::url_encoded(&array);
             assert_eq!(super::url_decoded(encoded.as_bytes()), array, "{}", encoded);
         }
