@@ -124,7 +124,7 @@ impl Registry {
     }
 
     /// Get an iterator into the ordered pairs of the registry.
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = (&DID, &Document)> + 'a {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = (&'a DID, &'a Document)> + 'a {
         self.r.iter()
     }
 
