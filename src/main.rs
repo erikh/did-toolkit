@@ -71,7 +71,7 @@ mod util {
             let mut doc = create_random_document(None, max_did_len)?;
 
             let mut set = BTreeSet::new();
-            for num in 0..rand::random_range(0..complexity as u64) {
+            for num in 0..rand::random_range(0..complexity) {
                 set.insert(generate_verification_method(doc.id.clone(), None, num));
             }
             doc.verification_method = Some(set);
@@ -136,7 +136,7 @@ mod util {
         let mut set = BTreeSet::default();
         let mut rng = rand::rng();
 
-        for _ in 0..rng.random_range(0..complexity as u64) {
+        for _ in 0..rng.random_range(0..complexity) {
             let se = ServiceEndpoint {
                 id: generate_random_url()?,
                 typ: ServiceTypes(Either::Left(ServiceType::LinkedDomains)),
@@ -145,7 +145,7 @@ mod util {
                 } else {
                     let mut set = BTreeSet::default();
 
-                    for _ in 0..rng.random_range(0..complexity as u64) {
+                    for _ in 0..rng.random_range(0..complexity) {
                         set.insert(generate_random_url()?);
                     }
 
@@ -178,13 +178,11 @@ mod util {
             let path = &mut [0; 10];
             path.fill(&mut rng);
             let path = Some(path.to_vec());
-            for num in 0..rng.random_range(0..complexity as u64) {
+            for num in 0..rng.random_range(0..complexity) {
                 let vm = doc.verification_method.clone().unwrap();
                 let mut iter = vm.iter();
                 if rand::random::<bool>() && iter.len() > 0 {
-                    let item = iter
-                        .nth(rng.random_range(0..iter.len() as u64) as usize)
-                        .unwrap();
+                    let item = iter.nth(rng.random_range(0..iter.len())).unwrap();
                     set.insert(VerificationMethodEither(Either::Right(item.id.clone())));
                 } else {
                     set.insert(VerificationMethodEither(Either::Left(
@@ -202,8 +200,8 @@ mod util {
     pub fn link_documents_controller(reg: &mut Registry, iterations: usize) {
         let mut rng = rand::rng();
         for _ in 0..iterations {
-            let one = &mut reg[rng.random_range(0..reg.len() as u64) as usize].clone();
-            let two = reg[rng.random_range(0..reg.len() as u64) as usize].clone();
+            let one = &mut reg[rng.random_range(0..reg.len())].clone();
+            let two = reg[rng.random_range(0..reg.len())].clone();
 
             if let None = one.controller {
                 reg[&one.id].controller = Some(Controller(Either::Left(two.id)));
@@ -229,8 +227,8 @@ mod util {
     pub fn link_documents_aka(reg: &mut Registry, iterations: usize) {
         let mut rng = rand::rng();
         for _ in 0..iterations {
-            let one = reg[rng.random_range(0..reg.len() as u64) as usize].clone();
-            let two = reg[rng.random_range(0..reg.len() as u64) as usize].clone();
+            let one = reg[rng.random_range(0..reg.len())].clone();
+            let two = reg[rng.random_range(0..reg.len())].clone();
 
             let one_id = one.id.clone();
             let two_id = two.id.clone();
@@ -264,7 +262,7 @@ mod util {
     pub fn generate_verification_method(
         did: DID,
         path: Option<Vec<u8>>,
-        num: u64,
+        num: usize,
     ) -> VerificationMethod {
         VerificationMethod {
             id: did.join(URLParameters {
@@ -310,9 +308,9 @@ mod util {
 
                 let mut v = Vec::new();
 
-                for _ in 0..rng.random_range(0..max_len as u64) {
-                    let idx = rng.random_range(0..bytes.len() as u64);
-                    v.push(bytes.get(idx as usize).unwrap().clone());
+                for _ in 0..rng.random_range(0..max_len) {
+                    let idx = rng.random_range(0..bytes.len());
+                    v.push(bytes.get(idx).unwrap().clone());
                 }
 
                 v
@@ -323,8 +321,8 @@ mod util {
         chars.fill(&mut rng);
 
         let mut method_id = Vec::new();
-        for x in 0..rng.random_range(0..max_len as u64) {
-            method_id.push(chars[x as usize]);
+        for x in 0..rng.random_range(0..max_len) {
+            method_id.push(chars[x]);
         }
 
         Ok(DID {
